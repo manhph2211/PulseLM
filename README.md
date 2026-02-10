@@ -58,86 +58,60 @@ This dataset enables research and applications in:
 
 ## Text Description Examples
 
-Each sample includes a natural language text description in the `text` key that summarizes clinical metadata, physiological measurements, recording context, and signal characteristics. The content varies by dataset:
+<!-- Each sample includes a natural language text description in the `text` key that summarizes clinical metadata, physiological measurements, recording context, and signal characteristics, etc. For example: -->
+</details>
 
 <details>
-<summary><b>Exp 1</b></summary>
+<summary><b>Examples</b></summary>
+
 
 ```
 A 44-year-old male patient. BMI 28.2. wearable smartwatch PPG recording. normal sinus rhythm, no atrial fibrillation.
 ```
-</details>
 
-<details>
-<summary><b>Exp 2</b></summary>
 
 ```
 A 34-year-old male. height 182cm, weight 78kg (BMI: 23.5). medium skin, exercises 6 hours/week. Currently unknown activity. Heart rate: 50 bpm.
 ```
-</details>
-
-<details>
-<summary><b>Exp 3</b></summary>
 
 ```
 In-ear PPG signal recorded from the left ear using green LED. Participant is a 24-year-old female with very light (Type I) skin tone. Recording was made during chewing activity (chewing). Heart rate is 78 bpm (normal).
 ```
-</details>
 
-<details>
-<summary><b>Exp 4</b></summary>
 
 ```
 Patient diagnosed with normal (AHI < 5). Current segment shows normal breathing. Breathing pattern is regular and unobstructed.
 ```
-</details>
 
 
-<details>
-<summary><b>Exp 5</b></summary>
 
 ```
 Blood pressure: 108/80 mmHg (Normal). Heart rate: 110 bpm (tachycardia). Cardiac cycle: 546ms (systolic: 168ms, diastolic: 378ms). Signal quality: acceptable quality. Time to steepest upstroke: 82.3ms. Systolic AUC: 7.3133. Peak-to-peak interval: 68ms.
 ```
-</details>
 
-
-<details>
-<summary><b>Exp 6</b></summary>
 
 ```
 This PPG recording was collected while the subject was performing office work activities. Heart rate is 84 bpm (normal). Mean RR interval is 714 ms. RMSSD is 24.3 ms indicating moderate parasympathetic activity. SDNN is 31.3 ms showing reduced heart rate variability. pNN50 is 7.7%.
 ```
-</details>
 
-<details>
-<summary><b>Exp 7</b></summary>
 
 ```
 A 77.0-year-old m patient. height 160.2cm, weight 67.5kg (BMI: 26.3). from General surgery department. undergoing Colorectal. ASA physical status 2. Blood pressure: 134/58 mmHg (hypertension stage1). mean arterial pressure: 91 mmHg. heart rate: 85 bpm (normal). HRV metrics: MeanNN=704.7ms, SDNN=9.3ms, RMSSD=11.3ms, pNN50=0.0%. medical history: hypertension.
 ```
-</details>
-
-<details>
-<summary><b>Exp 8</b></summary>
 
 ```
 A 28-year-old male. height 178cm, weight 76kg (BMI: 24.0). Current emotional state: baseline/neutral.
 ```
-</details>
-
-<details>
-<summary><b>Exp 9</b></summary>
 
 ```
 PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR interval is 708 ms. RMSSD is 11.3 ms indicating reduced parasympathetic activity. SDNN is 17.9 ms showing reduced heart rate variability. pNN50 is 0.0%.
 ```
 </details>
 
-## QA Examples
+## Question Answering Examples
 
 <details>
-<summary><b>Heart Rate</b></summary>
+<summary><b>Examples</b></summary>
 
 **Answers**: `bradycardia`, `normal`, `tachycardia`
 
@@ -151,10 +125,8 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Based on the PPG waveform, what is the HR category?
 9. Categorize the heart rate shown in this recording.
 10. What is the heart rate status for this sample?
-</details>
 
-<details>
-<summary><b>Blood Pressure</b></summary>
+
 
 **Answers**: `normal`, `elevated`, `hypertension_stage1`, `hypertension_stage2`, `hypertensive_crisis`
 
@@ -168,10 +140,6 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the blood pressure level.
 9. Based on the PPG, what is the BP category?
 10. What blood pressure class does this sample belong to?
-</details>
-
-<details>
-<summary><b>Signal Quality Index</b></summary>
 
 **Answers**: `good_quality`, `noisy_or_distorted`, `symmetric_unusual`
 
@@ -185,10 +153,6 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Rate the quality of this PPG signal.
 9. What is the SQI classification for this segment?
 10. Assess the signal quality of this PPG recording.
-</details>
-
-<details>
-<summary><b>Emotion State</b></summary>
 
 **Answers**: `baseline`, `stress`, `amusement`, `meditation`
 
@@ -202,10 +166,6 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Classify the stress level from this PPG.
 9. What psychological state does this segment indicate?
 10. Categorize the stress condition for this sample.
-</details>
-
-<details>
-<summary><b>Sleep-Disordered Breathing</b></summary>
 
 **Answers**: `normal_ahi<5`, `mild_5<=ahi<15`, `moderate_15<=ahi<30`, `severe_ahi>=30`
 
@@ -219,10 +179,6 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the breathing disorder level.
 9. What sleep-disordered breathing class is this?
 10. Assess the respiratory disturbance category.
-</details>
-
-<details>
-<summary><b>HRV SDNN</b></summary>
 
 **Answers**: `low`, `normal`, `high`
 
@@ -236,10 +192,6 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the overall HRV (SDNN) level.
 9. What SDNN class does this sample belong to?
 10. Assess the SDNN-based variability category.
-</details>
-
-<details>
-<summary><b>HRV RMSSD</b></summary>
 
 **Answers**: `low`, `normal`, `high`
 
@@ -253,10 +205,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the short-term HRV (RMSSD).
 9. What RMSSD class does this recording indicate?
 10. Assess the RMSSD-based variability level.
-</details>
 
-<details>
-<summary><b>HRV pNN50</b></summary>
 
 **Answers**: `low`, `normal`, `high`
 
@@ -270,10 +219,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the pNN50 variability measure.
 9. What pNN50 class does this sample belong to?
 10. Assess the pNN50 category from this PPG.
-</details>
 
-<details>
-<summary><b>Atrial Fibrillation</b></summary>
 
 **Answers**: `af`, `non_af`
 
@@ -287,10 +233,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Does this waveform indicate AF?
 9. Provide the atrial fibrillation detection result.
 10. Assess whether atrial fibrillation is present in this PPG.
-</details>
 
-<details>
-<summary><b>Arrhythmia</b></summary>
 
 **Answers**: `sinus_rhythm`, `pvc`, `pac`, `vt`, `svt`, `af`
 
@@ -304,10 +247,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the heart rhythm abnormality.
 9. What is the rhythm diagnosis for this segment?
 10. Assess the arrhythmia classification from this recording.
-</details>
 
-<details>
-<summary><b>SpO2</b></summary>
 
 **Answers**: `normal`, `mild_hypoxemia`, `moderate_hypoxemia`, `severe_hypoxemia`
 
@@ -321,10 +261,6 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 8. Categorize the SpO2 level.
 9. What SpO2 class does this sample belong to?
 10. Assess the oxygen saturation level from this PPG.
-</details>
-
-<details>
-<summary><b>Respiratory Rate</b></summary>
 
 **Answers**: `bradypnea`, `normal`, `tachypnea`
 
