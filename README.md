@@ -1,123 +1,143 @@
-# PulseLM: Towards Physiological Language Models
+PulseLM
+=====
+
+<div align="center" style="font-size: 5em;">
+  <strong>PulseLM: A Foundation Dataset and Benchmark for PPG-Text Learning</strong>
+  <br> </br> 
+</div>
+
+<div align="center"> 
+<a href="https://github.com/manhph2211/PULSE-LM/"><img src="https://img.shields.io/badge/Website-QHEART WebPage-blue?style=for-the-badge"></a>
+<a href="https://arxiv.org/pdf/2505.XXXX"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a>
+<a href="https://huggingface.co/Manhph2211/"><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
+</div>
+
+<div align="center">
+  <a href="https://github.com/manhph2211/" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</*a> &emsp;
+    <a href="" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</*a> &emsp;
+
+  <a href="https://aqibsaeed.github.io/" target="_blank">Aaqib&nbsp;Saeed</a> &emsp;
+  <a href="https://www.dongma.info/" target="_blank">Dong&nbsp;Ma</a> &emsp;
+</div>
+<br>
+
+<div align="center" >
+  <small>* equal contribution</small>
+  <small>+ equal corresponding authorship</small>
+</div>
+
+
 
 ## Introduction
 
 **PulseLM** is a multimodal framework that integrates PPG (Photoplethysmography) signal encoders with large language models for physiological signal understanding. The project includes a large-scale standardized PPG dataset and a model architecture that combines pretrained PPG encoders with LLM backbones (LLaMA, Qwen variants) via LoRA fine-tuning.
 
 Each sample consists of:
-- A **10-second PPG signal** (1,250 samples at 125 Hz, normalized to [0,1])
-- A **text description** of the signal characteristics
-- **Question-answer pairs** across 13 clinical categories with predefined answer choices
+- A **PPG signal** (10-second, 125 Hz, cleaned, processed and normalized)
+- A **text description** of the data (metadata, labels, ground information, recording conditions, sensor details, activities, etc.)
+- **Question-answer pairs** across 12 clinical-related categories/tasks 
 
-This dataset enables research in:
-- Multimodal signal-language alignment
+This dataset enables research and applications in:
+- PPG Signal Foundation models
+- Multimodal PPG-language alignment
 - Zero-shot physiological signal classification
-- Explainable AI for cardiovascular health monitoring
-- Foundation models for wearable biosignals
+- Explainable AI for health monitoring
 
-| Metric | Value |
+| Summary | Values |
 |--------|-------|
-| Total Datasets | 15 |
-| Total Samples | ~1.31M |
-| Signal Length | 1,250 samples (10 seconds) |
+| Total Used Datasets | 15 |
+| Total PPG-Text Samples | ~1.31M |
+| Total QA Pairs | ~1.31M |
+| Signal Length | 10 seconds |
 | Sampling Rate | 125 Hz |
 | Signal Range | Normalized [0, 1] |
-| QA Categories | 13 |
-| Questions per Category | 10 |
+| QA Tasks | 12 |
 
----
 
-## Model Architecture
 
-PulseLM uses a multimodal architecture that fuses physiological signal features with text through an LLM backbone:
 
-```
-PPG Signal ──> PPG Encoder ──> Linear Projection ──┐
-                                                    ├──> [PPG_tok, ECG_tok, Text_tok] ──> LLM (LoRA) ──> Answer
-ECG Signal ──> ECG Encoder ──> Linear Projection ──┘
-```
+## Text Description Examples
 
-**Components:**
-- **Signal Encoders**: Pretrained PPG and ECG encoders (frozen by default) that extract feature representations from raw signals
-- **Projection Layers**: Linear layers that map encoder features to the LLM's hidden dimension
-- **LLM Backbone**: Causal language model fine-tuned with LoRA on attention and MLP layers (`q/k/v/o/gate/up/down_proj`)
-- **Supported LLMs**: LLaMA, Gemma, and Qwen variant families
-- **Training Modes**: LoRA (default), full fine-tuning, or frozen LLM
-
----
-
-## Setup
-
-```bash
-conda create -n ppg python=3.10 -y
-conda activate ppg
-pip install -r requirements.txt
-```
-
----
-
-## Datasets
-
-### Summary
-
-| Dataset | Samples | QA Categories | Source |
-|---------|---------|---------------|--------|
-| AFPPG | 4,196 | af_label | AF detection from PPG |
-| AFPPGECG | 384,001 | af_label | AF detection from PPG+ECG |
-| BCG | 671 | heart_rate, blood_pressure, sqi | BCG-PPG combined recordings |
-| DALIA | 39,216 | heart_rate, activity | Daily life activities |
-| Earset | 1,776 | heart_rate | Ear-worn PPG sensor |
-| PPGArrhythmia | 46,827 | arrhythmia | Multi-class arrhythmia detection |
-| PPGBP | 369 | heart_rate, blood_pressure | BP measurement study |
-| SDB | 258,897 | sdb_label | Sleep polysomnography |
-| Sensors | 2,061 | heart_rate, blood_pressure, sqi | Multi-sensor recordings |
-| UCI | 111,751 | heart_rate, blood_pressure, sqi | UCI ML Repository |
-| UQVitalSigns | 37,018 | heart_rate, blood_pressure, spo2, rr, sqi | Perioperative vital signs |
-| UTSAPPG | 16,925 | heart_rate, hrv_sdnn, hrv_rmssd, hrv_pnn50 | UTSA PPG dataset |
-| VitalDB | 163,959 | heart_rate, hrv_sdnn, hrv_rmssd, hrv_pnn50 | Surgical PPG recordings |
-| WESAD | 2,998 | stress_label | Stress/Affect detection |
-| WildPPG | 240,000 | heart_rate, hrv_sdnn, hrv_rmssd, hrv_pnn50 | Uncontrolled conditions |
-
----
-
-## Signal Format
-
-All signals are standardized to:
-
-| Property | Value |
-|----------|-------|
-| Sampling Rate | 125 Hz |
-| Duration | 10 seconds |
-| Length | 1,250 samples |
-| Normalization | Min-max [0, 1] |
-| Data Type | float32 |
-
----
-
-## QA Categories
-
-### Overview
-
-| Category | Answers | Datasets |
-|----------|---------|----------|
-| heart_rate_category | bradycardia, normal, tachycardia | BCG, DALIA, Earset, PPGBP, Sensors, UCI, UQVitalSigns, UTSAPPG, VitalDB, WildPPG |
-| blood_pressure_category | normal, elevated, hypertension_stage1/2, crisis | BCG, PPGBP, Sensors, UCI, UQVitalSigns |
-| sqi_category | good_quality, noisy_or_distorted, symmetric_unusual | BCG, Sensors, UCI, UQVitalSigns |
-| activity_label | sitting, walking, cycling, stairs, driving, working, lunch_break, table_soccer, unknown | DALIA |
-| stress_label | baseline, stress, amusement, meditation | WESAD |
-| sdb_label | normal, mild, moderate, severe (AHI-based) | SDB |
-| hrv_sdnn_category | low, normal, high | UTSAPPG, VitalDB, WildPPG |
-| hrv_rmssd_category | low, normal, high | UTSAPPG, VitalDB, WildPPG |
-| hrv_pnn50_category | low, normal, high | UTSAPPG, VitalDB, WildPPG |
-| af_label | af, non_af | AFPPG, AFPPGECG |
-| arrhythmia_category | sinus_rhythm, pvc, pac, vt, svt, af | PPGArrhythmia |
-| spo2_category | normal, mild_hypoxemia, moderate_hypoxemia, severe_hypoxemia | UQVitalSigns |
-| rr_category | bradypnea, normal, tachypnea | UQVitalSigns |
-
-### Question Pools (10 questions per category)
+Each sample includes a natural language text description in the `text` key that summarizes clinical metadata, physiological measurements, recording context, and signal characteristics. The content varies by dataset:
 
 <details>
-<summary><b>Heart Rate Category</b></summary>
+<summary><b>Exp 1</b></summary>
+
+```
+A 44-year-old male patient. BMI 28.2. wearable smartwatch PPG recording. normal sinus rhythm, no atrial fibrillation.
+```
+</details>
+
+<details>
+<summary><b>Exp 2</b></summary>
+
+```
+A 34-year-old male. height 182cm, weight 78kg (BMI: 23.5). medium skin, exercises 6 hours/week. Currently unknown activity. Heart rate: 50 bpm.
+```
+</details>
+
+<details>
+<summary><b>Exp 3</b></summary>
+
+```
+In-ear PPG signal recorded from the left ear using green LED. Participant is a 24-year-old female with very light (Type I) skin tone. Recording was made during chewing activity (chewing). Heart rate is 78 bpm (normal).
+```
+</details>
+
+<details>
+<summary><b>Exp 4</b></summary>
+
+```
+Patient diagnosed with normal (AHI < 5). Current segment shows normal breathing. Breathing pattern is regular and unobstructed.
+```
+</details>
+
+
+<details>
+<summary><b>Exp 5</b></summary>
+
+```
+Blood pressure: 108/80 mmHg (Normal). Heart rate: 110 bpm (tachycardia). Cardiac cycle: 546ms (systolic: 168ms, diastolic: 378ms). Signal quality: acceptable quality. Time to steepest upstroke: 82.3ms. Systolic AUC: 7.3133. Peak-to-peak interval: 68ms.
+```
+</details>
+
+
+<details>
+<summary><b>Exp 6</b></summary>
+
+```
+This PPG recording was collected while the subject was performing office work activities. Heart rate is 84 bpm (normal). Mean RR interval is 714 ms. RMSSD is 24.3 ms indicating moderate parasympathetic activity. SDNN is 31.3 ms showing reduced heart rate variability. pNN50 is 7.7%.
+```
+</details>
+
+<details>
+<summary><b>Exp 7</b></summary>
+
+```
+A 77.0-year-old m patient. height 160.2cm, weight 67.5kg (BMI: 26.3). from General surgery department. undergoing Colorectal. ASA physical status 2. Blood pressure: 134/58 mmHg (hypertension stage1). mean arterial pressure: 91 mmHg. heart rate: 85 bpm (normal). HRV metrics: MeanNN=704.7ms, SDNN=9.3ms, RMSSD=11.3ms, pNN50=0.0%. medical history: hypertension.
+```
+</details>
+
+<details>
+<summary><b>Exp 8</b></summary>
+
+```
+A 28-year-old male. height 178cm, weight 76kg (BMI: 24.0). Current emotional state: baseline/neutral.
+```
+</details>
+
+<details>
+<summary><b>Exp 9</b></summary>
+
+```
+PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR interval is 708 ms. RMSSD is 11.3 ms indicating reduced parasympathetic activity. SDNN is 17.9 ms showing reduced heart rate variability. pNN50 is 0.0%.
+```
+</details>
+
+## QA Examples
+
+<details>
+<summary><b>Heart Rate</b></summary>
 
 **Answers**: `bradycardia`, `normal`, `tachycardia`
 
@@ -134,7 +154,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>Blood Pressure Category</b></summary>
+<summary><b>Blood Pressure</b></summary>
 
 **Answers**: `normal`, `elevated`, `hypertension_stage1`, `hypertension_stage2`, `hypertensive_crisis`
 
@@ -168,24 +188,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>Activity Label</b></summary>
-
-**Answers**: `sitting`, `walking`, `cycling`, `stairs`, `driving`, `working`, `lunch_break`, `table_soccer`, `unknown_0`
-
-1. What is the activity label for this sample?
-2. Classify the activity type.
-3. Identify the physical activity for this segment.
-4. What activity does this PPG correspond to?
-5. What activity was being performed during this PPG recording?
-6. Determine the activity category for this sample.
-7. What type of activity is shown in this recording?
-8. Categorize the physical activity.
-9. What is the motion/activity state for this segment?
-10. Identify what the subject was doing during this recording.
-</details>
-
-<details>
-<summary><b>Stress Label</b></summary>
+<summary><b>Emotion State</b></summary>
 
 **Answers**: `baseline`, `stress`, `amusement`, `meditation`
 
@@ -219,7 +222,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>HRV SDNN Category</b></summary>
+<summary><b>HRV SDNN</b></summary>
 
 **Answers**: `low`, `normal`, `high`
 
@@ -236,7 +239,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>HRV RMSSD Category</b></summary>
+<summary><b>HRV RMSSD</b></summary>
 
 **Answers**: `low`, `normal`, `high`
 
@@ -253,7 +256,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>HRV pNN50 Category</b></summary>
+<summary><b>HRV pNN50</b></summary>
 
 **Answers**: `low`, `normal`, `high`
 
@@ -270,7 +273,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>AF Label</b></summary>
+<summary><b>Atrial Fibrillation</b></summary>
 
 **Answers**: `af`, `non_af`
 
@@ -287,7 +290,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>Arrhythmia Category</b></summary>
+<summary><b>Arrhythmia</b></summary>
 
 **Answers**: `sinus_rhythm`, `pvc`, `pac`, `vt`, `svt`, `af`
 
@@ -304,7 +307,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>SpO2 Category</b></summary>
+<summary><b>SpO2</b></summary>
 
 **Answers**: `normal`, `mild_hypoxemia`, `moderate_hypoxemia`, `severe_hypoxemia`
 
@@ -321,7 +324,7 @@ All signals are standardized to:
 </details>
 
 <details>
-<summary><b>Respiratory Rate Category</b></summary>
+<summary><b>Respiratory Rate</b></summary>
 
 **Answers**: `bradypnea`, `normal`, `tachypnea`
 
@@ -337,116 +340,40 @@ All signals are standardized to:
 10. Assess the respiratory rate category from this PPG.
 </details>
 
----
-
-## Category Conversion Rules
-
-### Heart Rate
-| Value (bpm) | Label |
-|-------------|-------|
-| < 60 | `bradycardia` |
-| 60 - 100 | `normal` |
-| > 100 | `tachycardia` |
-
-### Blood Pressure (AHA/ACC 2017)
-| SBP (mmHg) | DBP (mmHg) | Label |
-|------------|------------|-------|
-| > 180 | OR > 120 | `hypertensive_crisis` |
-| >= 140 | OR >= 90 | `hypertension_stage2` |
-| >= 130 | OR >= 80 | `hypertension_stage1` |
-| 120 - 129 | AND < 80 | `elevated` |
-| < 120 | AND < 80 | `normal` |
-
-### Signal Quality (Skewness)
-| Condition | Label |
-|-----------|-------|
-| 0.5 <= skew <= 2.0 | `good_quality` |
-| skew < 0.5 or > 2.0 | `noisy_or_distorted` |
-| skew ~ 0 | `symmetric_unusual` |
-
-### Sleep Apnea (AHI)
-| Value (events/hr) | Label |
-|-------------------|-------|
-| < 5 | `normal_ahi<5` |
-| 5 - 14 | `mild_5<=ahi<15` |
-| 15 - 29 | `moderate_15<=ahi<30` |
-| >= 30 | `severe_ahi>=30` |
-
-### HRV Metrics
-
-| Metric | Low | Normal | High |
-|--------|-----|--------|------|
-| SDNN (ms) | < 50 | 50 - 100 | > 100 |
-| RMSSD (ms) | < 20 | 20 - 50 | > 50 |
-| pNN50 (%) | < 3 | 3 - 25 | > 25 |
-
-### SpO2
-| Value (%) | Label |
-|-----------|-------|
-| >= 95 | `normal` |
-| 90 - 94 | `mild_hypoxemia` |
-| 85 - 89 | `moderate_hypoxemia` |
-| < 85 | `severe_hypoxemia` |
-
-### Respiratory Rate
-| Value (breaths/min) | Label |
-|---------------------|-------|
-| < 12 | `bradypnea` |
-| 12 - 20 | `normal` |
-| > 20 | `tachypnea` |
-
----
-
-## File Format
-
-### .mat Structure
-
-```python
-{
-    'signal': np.ndarray,  # (n_samples, 1250), float32
-    'text': np.ndarray,    # (n_samples,), str
-    'qa': np.ndarray       # (n_samples,), JSON str
-}
-```
-
-### QA JSON Format
-
-```json
-{
-    "heart_rate_category": {
-        "question": "What is the heart rate category for this PPG segment?",
-        "answer": "normal"
-    },
-    "blood_pressure_category": {
-        "question": "Classify the blood pressure level.",
-        "answer": "hypertension_stage1"
-    }
-}
-```
-
----
 
 ## Usage
+
+```bash
+conda create -n ppg python=3.10 -y
+conda activate ppg
+pip install -r requirements.txt
+```
 
 ```python
 import scipy.io as sio
 import json
 import numpy as np
 
-# Load dataset
-mat = sio.loadmat('data/ppg_text_qa_v1/dalia_ppg_text.mat')
-
-# Access signal
-signal = mat['signal'][0]  # Shape: (1250,), Range: [0, 1]
-
-# Parse QA
+mat = sio.loadmat('path to .mat file')
+signal = mat['signal'][0] 
 qa_str = mat['qa'][0]
 if isinstance(qa_str, np.ndarray):
     qa_str = str(qa_str.item())
 qa = json.loads(qa_str)
-
 for category, pair in qa.items():
     print(f"{category}: {pair['answer']}")
 ```
 
----
+
+## Citation
+
+If you find this repository useful for your research, please consider citing:
+
+```bibtex
+@article{pham2026pulselm,
+  title={PULSE-LM: A Large-Scale PPG Language Model for Multimodal Health Analysis},
+  author={},
+  journal={arXiv preprint arXiv},
+  year={2026},
+  }
+```
