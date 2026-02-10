@@ -1,31 +1,33 @@
-PulseLM
-=====
 
-<div align="center" style="font-size: 5em;">
+<div align="center" style="font-size: 15em;">
   <strong>PulseLM: A Foundation Dataset and Benchmark for PPG-Text Learning</strong>
   <br> </br> 
 </div>
 
 <div align="center"> 
-<a href="https://github.com/manhph2211/PULSE-LM/"><img src="https://img.shields.io/badge/Website-QHEART WebPage-blue?style=for-the-badge"></a>
+<a href="https://github.com/manhph2211/PulseLM/"><img src="https://img.shields.io/badge/Website WebPage-blue?style=for-the-badge"></a>
 <a href="https://arxiv.org/pdf/2505.XXXX"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a>
-<a href="https://huggingface.co/Manhph2211/"><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
+<a href="https://huggingface.co/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
 </div>
 
 <div align="center">
-  <a href="https://github.com/manhph2211/" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</*a> &emsp;
-    <a href="" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</*a> &emsp;
-
+  <a href="https://github.com/manhph2211/" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</a> &emsp;
+  <a href="" target="_blank">Jinyang&nbsp;Wu*</a> &emsp;
+  <a href="" target="_blank">Xiao&nbsp;Ma</a> &emsp;
+  <a href="" target="_blank">Yiming&nbsp;Zhang</a> &emsp;
+  <a href="" target="_blank">Yixin&nbsp;Xu</a> &emsp;
   <a href="https://aqibsaeed.github.io/" target="_blank">Aaqib&nbsp;Saeed</a> &emsp;
-  <a href="https://www.dongma.info/" target="_blank">Dong&nbsp;Ma</a> &emsp;
+  <a href="" target="_blank">Bin&nbsp;Zhu†</a> &emsp;
+  <a href="" target="_blank">Zhou&nbsp;Pan†</a> &emsp;
+  <a href="https://www.dongma.info/" target="_blank">Dong&nbsp;Ma†</a>
 </div>
 <br>
-
-<div align="center" >
-  <small>* equal contribution</small>
-  <small>+ equal corresponding authorship</small>
+<div align="center">
+  <em>* Equal contribution &nbsp;&nbsp; † Corresponding authors</em>
 </div>
 
+
+<img alt="image" src="https://github.com/user-attachments/assets/35a7926e-fe85-4d61-93ce-1f2ada3c8d72" />
 
 
 ## Introduction
@@ -43,18 +45,6 @@ This dataset enables research and applications in:
 - Zero-shot physiological signal classification
 - Explainable AI for health monitoring
 
-| Summary | Values |
-|--------|-------|
-| Total Used Datasets | 15 |
-| Total PPG-Text Samples | ~1.31M |
-| Total QA Pairs | ~1.31M |
-| Signal Length | 10 seconds |
-| Sampling Rate | 125 Hz |
-| Signal Range | Normalized [0, 1] |
-| QA Tasks | 12 |
-
-
-
 
 ## Text Description Examples
 
@@ -62,7 +52,7 @@ This dataset enables research and applications in:
 </details>
 
 <details>
-<summary><b>Examples</b></summary>
+<summary><b>Click Here</b></summary>
 
 
 ```
@@ -111,7 +101,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 ## Question Answering Examples
 
 <details>
-<summary><b>Examples</b></summary>
+<summary><b>Click Here</b></summary>
 
 **Answers**: `bradycardia`, `normal`, `tachycardia`
 
