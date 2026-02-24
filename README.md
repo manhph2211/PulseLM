@@ -289,17 +289,3 @@ qa = json.loads(qa_str)
 for category, pair in qa.items():
     print(f"{category}: {pair['answer']}")
 ```
-
-
-## Citation
-
-If you find this repository useful for your research, please consider citing:
-
-```bibtex
-@article{pham2026pulselm,
-  title={PULSE-LM: A Large-Scale PPG Language Model for Multimodal Health Analysis},
-  author={},
-  journal={arXiv preprint arXiv},
-  year={2026},
-  }
-```
