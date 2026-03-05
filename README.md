@@ -45,6 +45,11 @@ This dataset enables research and applications in:
 - Zero-shot physiological signal classification
 - Explainable AI for health monitoring
 
+We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible:
+
+<img alt="image" src="https://github.com/user-attachments/assets/04ace880-a9d4-4495-9b24-7bd32ecc05b1" />
+
+
 
 ### Text Description Examples
 
