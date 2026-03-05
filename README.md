@@ -30,7 +30,7 @@
 <img alt="image" src="https://github.com/user-attachments/assets/35a7926e-fe85-4d61-93ce-1f2ada3c8d72" />
 
 
-## Introduction
+## :rocket: Introduction
 
 **PulseLM** is a multimodal framework that integrates PPG (Photoplethysmography) signal encoders with large language models for physiological signal understanding. The project includes a large-scale standardized PPG dataset and a model architecture that combines pretrained PPG encoders with LLM backbones (LLaMA, Qwen variants) via LoRA fine-tuning.
 
@@ -46,7 +46,7 @@ This dataset enables research and applications in:
 - Explainable AI for health monitoring
 
 
-## Text Description Examples
+### Text Description Examples
 
 <!-- Each sample includes a natural language text description in the `text` key that summarizes clinical metadata, physiological measurements, recording context, and signal characteristics, etc. For example: -->
 </details>
@@ -98,7 +98,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 ```
 </details>
 
-## Question Answering Examples
+### Question Answering Examples
 
 <details>
 <summary><b>Click Here</b></summary>
@@ -267,7 +267,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 </details>
 
 
-## Usage
+## :book: Usage
 
 ```bash
 conda create -n ppg python=3.10 -y
@@ -288,4 +288,20 @@ if isinstance(qa_str, np.ndarray):
 qa = json.loads(qa_str)
 for category, pair in qa.items():
     print(f"{category}: {pair['answer']}")
+```
+
+## :page_facing_up: Citation
+
+If you find this work useful :smile:, please consider citing our paper:
+
+```bibtex
+@misc{pham2026pulselmfoundationdatasetbenchmark,
+      title={PulseLM: A Foundation Dataset and Benchmark for PPG-Text Learning}, 
+      author={Hung Manh Pham and Jinyang Wu and Xiao Ma and Yiming Zhang and Yixin Xu and Aaqib Saeed and Bin Zhu and Zhou Pan and Dong Ma},
+      year={2026},
+      eprint={2603.03331},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2603.03331}, 
+}
 ```
