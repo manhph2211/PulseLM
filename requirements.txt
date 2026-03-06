@@ -21,3 +21,4 @@ wandb
 dotmap
 torch_ecg
 peakutils
+datasets
