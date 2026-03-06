@@ -32,10 +32,10 @@
 
 ## :rocket: Introduction
 
-**PulseLM** is a multimodal framework that integrates PPG (Photoplethysmography) signal encoders with large language models for physiological signal understanding. The project includes a large-scale standardized PPG dataset and a model architecture that combines pretrained PPG encoders with LLM backbones (LLaMA, Qwen variants) via LoRA fine-tuning.
+**PulseLM** is a multimodal framework that integrates PPG (Photoplethysmography) signal encoders with large language models for physiological signal understanding research. The project includes a large-scale standardized PPG dataset and a model architecture that combines pretrained PPG encoders with LLM backbones (LLaMA, Qwen variants) via LoRA fine-tuning.
 
 Each sample consists of:
-- A **PPG signal** (10-second, 125 Hz, cleaned, processed and normalized)
+- A **PPG signal** (10-second, 125 Hz, cleaned, processed, and normalized)
 - A **text description** of the data (metadata, labels, ground information, recording conditions, sensor details, activities, etc.)
 - **Question-answer pairs** across 12 clinical-related categories/tasks 
 
@@ -77,8 +77,6 @@ In-ear PPG signal recorded from the left ear using green LED. Participant is a 2
 ```
 Patient diagnosed with normal (AHI < 5). Current segment shows normal breathing. Breathing pattern is regular and unobstructed.
 ```
-
-
 
 ```
 Blood pressure: 108/80 mmHg (Normal). Heart rate: 110 bpm (tachycardia). Cardiac cycle: 546ms (systolic: 168ms, diastolic: 378ms). Signal quality: acceptable quality. Time to steepest upstroke: 82.3ms. Systolic AUC: 7.3133. Peak-to-peak interval: 68ms.
@@ -281,18 +279,16 @@ pip install -r requirements.txt
 ```
 
 ```python
-import scipy.io as sio
-import json
-import numpy as np
+from datasets import load_dataset, get_dataset_config_names, concatenate_datasets
 
-mat = sio.loadmat('path to .mat file')
-signal = mat['signal'][0] 
-qa_str = mat['qa'][0]
-if isinstance(qa_str, np.ndarray):
-    qa_str = str(qa_str.item())
-qa = json.loads(qa_str)
-for category, pair in qa.items():
-    print(f"{category}: {pair['answer']}")
+configs = get_dataset_config_names("Manhph2211/PulseLM")
+print(f"Available datasets: {configs}")
+train_splits = [
+    load_dataset("Manhph2211/PulseLM", name, split="test").select_columns(["signal", "text", "qa"])
+    for name in configs
+]
+combined = concatenate_datasets(train_splits)
+print(f"Total samples: {len(combined):,}")
 ```
 
 ## :page_facing_up: Citation
