@@ -281,11 +281,11 @@ pip install -r requirements.txt
 ```python
 from datasets import load_dataset, get_dataset_config_names, concatenate_datasets
 
-configs = get_dataset_config_names("Manhph2211/PulseLM")
-print(f"Available datasets: {configs}")
+dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
+print(f"Available datasets: {dataset_names}")
 train_splits = [
-    load_dataset("Manhph2211/PulseLM", name, split="test").select_columns(["signal", "text", "qa"])
-    for name in configs
+    load_dataset("Manhph2211/PulseLM", name, split="train").select_columns(["signal", "text", "qa"])
+    for name in dataset_names
 ]
 combined = concatenate_datasets(train_splits)
 print(f"Total samples: {len(combined):,}")
