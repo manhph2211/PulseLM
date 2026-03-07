@@ -45,7 +45,7 @@ This dataset enables research and applications in:
 - Zero-shot physiological signal classification
 - Explainable AI for health monitoring
 
-We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible:
+We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible. PulseLM is a research project that builds upon these valuable resources, and we greatly appreciate the efforts of the original dataset creators in collecting and openly sharing physiological data with the research community. Users of this repo are also required to follow the licenses and terms of use of the respective datasets.
 
 <img alt="image" src="https://github.com/user-attachments/assets/04ace880-a9d4-4495-9b24-7bd32ecc05b1" />
 
