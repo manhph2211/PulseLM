@@ -12,8 +12,11 @@ import torch
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_ROOT = os.path.join(PROJECT_ROOT, "src")
+SCRIPTS_ROOT = os.path.dirname(os.path.abspath(__file__))
 if SRC_ROOT not in sys.path:
     sys.path.insert(0, SRC_ROOT)
+if SCRIPTS_ROOT not in sys.path:
+    sys.path.insert(0, SCRIPTS_ROOT)
 
 
 def load_items(path: str) -> List[Dict[str, Any]]:
@@ -145,9 +148,47 @@ class SignalsCache:
         return self._cache[p]
 
 
+def load_hf_items(dataset_names, split, seed):
+    from datasets import load_dataset, get_dataset_config_names
+    from dataset import CATEGORY_BANK, _make_messages, _parse_qa
+
+    if dataset_names is None:
+        dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
+
+    rng = random.Random(seed)
+    items = []
+    for name in dataset_names:
+        ds = load_dataset("Manhph2211/PulseLM", name, split=split)
+        for row_idx, row in enumerate(ds):
+            sig = np.array(row["signal"], dtype=np.float32)
+            text_ctx = (row["text"] or "").strip()
+            qa = _parse_qa(row["qa"])
+            if not isinstance(qa, dict):
+                continue
+            for category, payload in qa.items():
+                if category not in CATEGORY_BANK:
+                    continue
+                ans = payload.get("answer", str(payload)) if isinstance(payload, dict) else str(payload)
+                if ans not in CATEGORY_BANK[category]["answers"]:
+                    continue
+                messages = _make_messages(text_ctx, category, ans, rng)
+                items.append({
+                    "id": f"{name}__row{row_idx}__{category}",
+                    "meta": {"dataset": name, "question_category": category, "split": split},
+                    "label": {"answer": ans},
+                    "messages": messages,
+                    "_signal_array": sig,
+                })
+    return items
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data_dir", type=str, required=True)
+    ap.add_argument("--use_hf_dataset", action="store_true", default=False)
+    ap.add_argument("--hf_test_names", type=str, default="",
+                    help="Comma-separated HF configs to evaluate on. Empty = all.")
+    ap.add_argument("--hf_split", type=str, default="test")
+    ap.add_argument("--data_dir", type=str, default="")
     ap.add_argument("--jsonl", type=str, default=None)
     ap.add_argument("--split_filter", type=str, default="test")
     ap.add_argument("--question_category_filter", type=str, default="")
@@ -180,9 +221,6 @@ def main():
 
     hf_token = args.hf_token or os.environ.get("HF_TOKEN", None)
 
-    jsonl_path = args.jsonl or os.path.join(args.data_dir, "test.jsonl")
-    if not os.path.exists(jsonl_path):
-        raise FileNotFoundError(f"Missing jsonl: {jsonl_path}")
     if not os.path.exists(args.full_state_path):
         raise FileNotFoundError(f"Missing full_state: {args.full_state_path}")
     if not os.path.exists(args.ppg_encoder_ckpt):
@@ -191,26 +229,34 @@ def main():
     random.seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    items = load_items(jsonl_path)
-    num_loaded_raw = len(items)
-
-    sf = (args.split_filter or "").strip()
-    if sf:
-        items = [it for it in items if (it.get("meta", {}) or {}).get("split") == sf]
+    jsonl_path = None
+    sf = None
+    if args.use_hf_dataset:
+        hf_test_names = [n.strip() for n in args.hf_test_names.split(",") if n.strip()] or None
+        items = load_hf_items(hf_test_names, args.hf_split, args.seed)
+        num_loaded_raw = len(items)
+        print(f"Loaded {num_loaded_raw} items from HF (split={args.hf_split})")
+    else:
+        jsonl_path = args.jsonl or os.path.join(args.data_dir, "test.jsonl")
+        if not os.path.exists(jsonl_path):
+            raise FileNotFoundError(f"Missing jsonl: {jsonl_path}")
+        items = load_items(jsonl_path)
+        num_loaded_raw = len(items)
+        sf = (args.split_filter or "").strip()
+        if sf:
+            items = [it for it in items if (it.get("meta", {}) or {}).get("split") == sf]
+        print(f"Loaded raw={num_loaded_raw} from {jsonl_path}")
+        if sf:
+            print(f"Applied split_filter={sf} => remaining={len(items)}")
 
     qf = (args.question_category_filter or "").strip()
     if qf:
         items = [it for it in items if (it.get("meta", {}) or {}).get("question_category") == qf]
+        print(f"Applied question_category_filter={qf} => remaining={len(items)}")
 
     random.shuffle(items)
     if args.max_samples and args.max_samples > 0:
         items = items[:args.max_samples]
-
-    print(f"Loaded raw={num_loaded_raw} from {jsonl_path}")
-    if sf:
-        print(f"Applied split_filter={sf} => remaining={len(items)}")
-    if qf:
-        print(f"Applied question_category_filter={qf} => remaining={len(items)}")
 
     tokenizer = AutoTokenizer.from_pretrained(args.llm_name, cache_dir=args.cache_dir, token=hf_token, use_fast=True)
     if tokenizer.pad_token is None:
@@ -238,6 +284,7 @@ def main():
     skip = Counter()
     overall = Counter()
     per_q = defaultdict(Counter)
+    per_ds = defaultdict(Counter)
     failures_printed = 0
     signals_cache = SignalsCache()
     fout = open(pred_jsonl_path, "w", encoding="utf-8")
@@ -245,7 +292,9 @@ def main():
     for i, it in enumerate(items, 1):
         meta = it.get("meta", {}) or {}
         qcat = meta.get("question_category", "UNKNOWN")
+        dset = meta.get("dataset", "UNKNOWN")
         per_q[qcat]["num_seen"] += 1
+        per_ds[dset]["num_seen"] += 1
 
         user_text = _find_user_content(it.get("messages", []) or [])
         options = extract_options_from_user(user_text)
@@ -269,28 +318,30 @@ def main():
 
         per_q[qcat]["num_eligible"] += 1
 
-        sig_ref = it.get("signal_ref", {}) or {}
-        try:
-            sig_idx = int(sig_ref.get("index"))
-        except Exception:
-            skip["bad_signal_index"] += 1
-            per_q[qcat]["skip_bad_signal_index"] += 1
-            continue
-
-        sig_path = sig_ref.get("path", "signals.npy")
-        try:
-            arr = signals_cache.get(args.data_dir, sig_path)
-        except FileNotFoundError:
-            skip["signals_file_missing"] += 1
-            per_q[qcat]["skip_signals_file_missing"] += 1
-            continue
-
-        if sig_idx < 0 or sig_idx >= len(arr):
-            skip["signal_index_oob"] += 1
-            per_q[qcat]["skip_signal_index_oob"] += 1
-            continue
-
-        ppg = torch.tensor(arr[sig_idx], dtype=torch.float32, device=device).unsqueeze(0)
+        sig_path = None
+        sig_idx = None
+        if "_signal_array" in it:
+            ppg = torch.tensor(it["_signal_array"], dtype=torch.float32, device=device).unsqueeze(0)
+        else:
+            sig_ref = it.get("signal_ref", {}) or {}
+            try:
+                sig_idx = int(sig_ref.get("index"))
+            except Exception:
+                skip["bad_signal_index"] += 1
+                per_q[qcat]["skip_bad_signal_index"] += 1
+                continue
+            sig_path = sig_ref.get("path", "signals.npy")
+            try:
+                arr = signals_cache.get(args.data_dir, sig_path)
+            except FileNotFoundError:
+                skip["signals_file_missing"] += 1
+                per_q[qcat]["skip_signals_file_missing"] += 1
+                continue
+            if sig_idx < 0 or sig_idx >= len(arr):
+                skip["signal_index_oob"] += 1
+                per_q[qcat]["skip_signal_index_oob"] += 1
+                continue
+            ppg = torch.tensor(arr[sig_idx], dtype=torch.float32, device=device).unsqueeze(0)
         if args.ppg_unsqueeze_channel:
             ppg = ppg.unsqueeze(1)
 
@@ -329,6 +380,7 @@ def main():
 
         overall["scored"] += 1
         per_q[qcat]["scored"] += 1
+        per_ds[dset]["scored"] += 1
 
         if parsed["raw_extracted"] is not None:
             overall["parse_ok"] += 1
@@ -345,6 +397,7 @@ def main():
         if is_correct:
             overall["correct"] += 1
             per_q[qcat]["correct"] += 1
+            per_ds[dset]["correct"] += 1
 
         record = {
             "id": it.get("id"),
@@ -405,6 +458,15 @@ def main():
             "skip_counts": {k: int(v) for k, v in c.items() if k.startswith("skip_")},
         }
 
+    per_ds_metrics = {}
+    for dset, c in sorted(per_ds.items()):
+        scored = int(c.get("scored", 0))
+        per_ds_metrics[dset] = {
+            "num_seen": int(c.get("num_seen", 0)),
+            "num_scored": scored,
+            "accuracy": safe_div(int(c.get("correct", 0)), scored),
+        }
+
     metrics = {
         "jsonl": jsonl_path,
         "data_dir": args.data_dir,
@@ -418,6 +480,7 @@ def main():
         "pred_in_options_rate": safe_div(int(overall.get("pred_in_options", 0)), int(overall.get("scored", 0))),
         "skip_reason_counts": {k: int(v) for k, v in skip.items()},
         "per_question_category": per_q_metrics,
+        "per_dataset": per_ds_metrics,
         "predictions_jsonl": pred_jsonl_path,
         "state_load": {
             "missing_keys_count": len(missing),

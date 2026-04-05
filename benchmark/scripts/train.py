@@ -175,10 +175,13 @@ def resolve_default_paths(data_dir: str) -> Tuple[str, str, str]:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, required=True)
     parser.add_argument("--out_dir", type=str, required=True)
     parser.add_argument("--llm_name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
     parser.add_argument("--max_length", type=int, default=768)
+    parser.add_argument("--use_hf_dataset", action="store_true", default=False)
+    parser.add_argument("--hf_train_names", type=str, default="",
+                        help="Comma-separated configs for train+val. Empty = all.")
+    parser.add_argument("--data_dir", type=str, default="")
     parser.add_argument("--train_jsonl", type=str, default="")
     parser.add_argument("--dev_jsonl", type=str, default="")
     parser.add_argument("--signals_npy", type=str, default="")
@@ -209,14 +212,9 @@ def main():
     from models.pulselm import MultimodalPPGLLM
     from models.ppg_encoder.pulseppg import load_pulseppg_from_checkpoint
     from models.ppg_encoder.papagei import load_papagei_from_checkpoint
+    from dataset import HFPulseLMDataset, PPGDataCollator as HFPPGDataCollator
 
-    data_dir = args.data_dir
     os.makedirs(args.out_dir, exist_ok=True)
-
-    default_train, default_dev, default_signals = resolve_default_paths(data_dir)
-    train_jsonl = args.train_jsonl or default_train
-    dev_jsonl = args.dev_jsonl or default_dev
-    signals_npy = args.signals_npy or default_signals
 
     hf_token = os.environ.get("HF_TOKEN", None)
     tokenizer = AutoTokenizer.from_pretrained(args.llm_name, token=hf_token, use_fast=True)
@@ -246,15 +244,30 @@ def main():
             if p.requires_grad and (("lora" in nl) or ("ppg" in nl) or ("proj" in nl)):
                 print(f"{n:80s} | requires_grad = {p.requires_grad}")
 
-    train_split = args.split_filter_train.strip() or None
-    dev_split = args.split_filter_dev.strip() or None
-
-    train_ds = PPGJsonlDataset(jsonl_path=train_jsonl, signals_npy_path=signals_npy, tokenizer=tokenizer,
-                               max_length=args.max_length, use_chat_template=True, split_filter=train_split, data_dir=data_dir)
-    dev_ds = PPGJsonlDataset(jsonl_path=dev_jsonl, signals_npy_path=signals_npy, tokenizer=tokenizer,
-                             max_length=args.max_length, use_chat_template=True, split_filter=dev_split, data_dir=data_dir)
-
-    collator = PPGDataCollator(tokenizer=tokenizer, ppg_unsqueeze_channel=args.ppg_unsqueeze_channel)
+    if args.use_hf_dataset:
+        train_names = [n.strip() for n in args.hf_train_names.split(",") if n.strip()] or None
+        train_ds = HFPulseLMDataset(
+            tokenizer=tokenizer, split="train", dataset_names=train_names,
+            max_length=args.max_length, use_chat_template=True,
+        )
+        dev_ds = HFPulseLMDataset(
+            tokenizer=tokenizer, split="validation", dataset_names=train_names,
+            max_length=args.max_length, use_chat_template=True,
+        )
+        collator = HFPPGDataCollator(tokenizer=tokenizer, ppg_unsqueeze_channel=args.ppg_unsqueeze_channel)
+    else:
+        data_dir = args.data_dir
+        default_train, default_dev, default_signals = resolve_default_paths(data_dir)
+        train_jsonl = args.train_jsonl or default_train
+        dev_jsonl = args.dev_jsonl or default_dev
+        signals_npy = args.signals_npy or default_signals
+        train_split = args.split_filter_train.strip() or None
+        dev_split = args.split_filter_dev.strip() or None
+        train_ds = PPGJsonlDataset(jsonl_path=train_jsonl, signals_npy_path=signals_npy, tokenizer=tokenizer,
+                                   max_length=args.max_length, use_chat_template=True, split_filter=train_split, data_dir=data_dir)
+        dev_ds = PPGJsonlDataset(jsonl_path=dev_jsonl, signals_npy_path=signals_npy, tokenizer=tokenizer,
+                                 max_length=args.max_length, use_chat_template=True, split_filter=dev_split, data_dir=data_dir)
+        collator = PPGDataCollator(tokenizer=tokenizer, ppg_unsqueeze_channel=args.ppg_unsqueeze_channel)
 
     train_args = TrainingArguments(
         output_dir=args.out_dir,

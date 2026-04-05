@@ -3,8 +3,6 @@ from .papagei import (
     load_papagei_from_checkpoint,
     ResNet1D,
     ResNet1DMoE,
-    ResNet1DBackBone,
-    TFCResNet,
 )
 
 __all__ = [
@@ -12,6 +10,4 @@ __all__ = [
     "load_papagei_from_checkpoint",
     "ResNet1D",
     "ResNet1DMoE",
-    "ResNet1DBackBone",
-    "TFCResNet",
 ]
