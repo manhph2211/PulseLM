@@ -1,1 +1,0 @@
-# ECG encoder package placeholder.
