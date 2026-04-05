@@ -228,7 +228,7 @@ def _make_messages(
     q = rng.choice(bank["questions"])
     opts = bank["answers"]
     system = (
-        "You are a PPG QA classification expert.\n"
+        "You are a physiological signal analysis expert specializing in PPG-based clinical classification.\n"
         "Rules:\n"
         "- Answer MUST be exactly one option from the provided list.\n"
         "- Output format MUST be strict: <answer>OPTION</answer>\n"
