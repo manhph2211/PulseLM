@@ -205,11 +205,15 @@ def main():
     parser.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["pulseppg", "papagei"])
     parser.add_argument("--ppg_encoder_ckpt", type=str, required=True)
     parser.add_argument("--ppg_unsqueeze_channel", action="store_true", default=False)
+    parser.add_argument("--seed", type=int, default=256)
 
     args = parser.parse_args()
 
     from transformers import AutoTokenizer, Trainer, TrainingArguments
     from models.pulselm import MultimodalPPGLLM
+    from utils.utils import set_seed
+
+    set_seed(args.seed)
     from models.ppg_encoder.pulseppg import load_pulseppg_from_checkpoint
     from models.ppg_encoder.papagei import load_papagei_from_checkpoint
     from dataset import HFPulseLMDataset, PPGDataCollator as HFPPGDataCollator
@@ -248,11 +252,11 @@ def main():
         train_names = [n.strip() for n in args.hf_train_names.split(",") if n.strip()] or None
         train_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="train", dataset_names=train_names,
-            max_length=args.max_length, use_chat_template=True,
+            max_length=args.max_length, use_chat_template=True, seed=args.seed,
         )
         dev_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="validation", dataset_names=train_names,
-            max_length=args.max_length, use_chat_template=True,
+            max_length=args.max_length, use_chat_template=True, seed=args.seed,
         )
         collator = HFPPGDataCollator(tokenizer=tokenizer, ppg_unsqueeze_channel=args.ppg_unsqueeze_channel)
     else:
@@ -271,6 +275,7 @@ def main():
 
     train_args = TrainingArguments(
         output_dir=args.out_dir,
+        seed=args.seed,
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,

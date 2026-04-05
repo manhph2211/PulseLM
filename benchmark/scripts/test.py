@@ -199,7 +199,7 @@ def main():
     ap.add_argument("--llm_name", type=str, required=True)
     ap.add_argument("--cache_dir", type=str, default=None)
     ap.add_argument("--hf_token", type=str, default=None)
-    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--seed", type=int, default=256)
     ap.add_argument("--max_samples", type=int, default=0)
     ap.add_argument("--max_new_tokens", type=int, default=32)
     ap.add_argument("--do_sample", action="store_true")
@@ -226,7 +226,14 @@ def main():
     if not os.path.exists(args.ppg_encoder_ckpt):
         raise FileNotFoundError(f"Missing PPG encoder ckpt: {args.ppg_encoder_ckpt}")
 
+    import numpy as np
     random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    os.environ["PYTHONHASHSEED"] = str(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     jsonl_path = None
