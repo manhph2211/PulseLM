@@ -13,11 +13,11 @@ processed/
 *.mat
 *.zip
 *.csv
-pulseppg
 figures
 utils/*.py
 utils/*.ipynb
-
+checkpoints/papagei/
+checkpoints/pulseppg/
 
 .env
 trash/

@@ -12,15 +12,15 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/manhph2211/" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</a> &emsp;
+  <a href="" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</a> &emsp;
   <a href="" target="_blank">Jinyang&nbsp;Wu*</a> &emsp;
   <a href="" target="_blank">Xiao&nbsp;Ma</a> &emsp;
   <a href="" target="_blank">Yiming&nbsp;Zhang</a> &emsp;
   <a href="" target="_blank">Yixin&nbsp;Xu</a> &emsp;
-  <a href="https://aqibsaeed.github.io/" target="_blank">Aaqib&nbsp;Saeed</a> &emsp;
+  <a href="" target="_blank">Aaqib&nbsp;Saeed</a> &emsp;
   <a href="" target="_blank">Bin&nbsp;Zhu†</a> &emsp;
   <a href="" target="_blank">Zhou&nbsp;Pan†</a> &emsp;
-  <a href="https://www.dongma.info/" target="_blank">Dong&nbsp;Ma†</a>
+  <a href="" target="_blank">Dong&nbsp;Ma†</a>
 </div>
 <br>
 <div align="center">
