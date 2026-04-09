@@ -11,8 +11,11 @@ from torch.utils.data import Dataset
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_ROOT = os.path.join(PROJECT_ROOT, "src")
+SCRIPTS_ROOT = os.path.dirname(os.path.abspath(__file__))
 if SRC_ROOT not in sys.path:
     sys.path.insert(0, SRC_ROOT)
+if SCRIPTS_ROOT not in sys.path:
+    sys.path.insert(0, SCRIPTS_ROOT)
 
 
 class PPGJsonlDataset(Dataset):
@@ -288,7 +291,7 @@ def main():
         fp16=args.fp16,
         optim="adamw_torch",
         max_grad_norm=1.0,
-        report_to="none",
+        report_to="wandb",
         remove_unused_columns=False,
         eval_strategy="epoch",
         save_strategy="epoch",
@@ -331,7 +334,7 @@ def main():
                     print(f"[OPT GROUP {i}] lr = {g['lr']}, num_params = {len(g['params'])}")
             return self.optimizer
 
-        def compute_loss(self, model, inputs, return_outputs=False):
+        def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
             labels = inputs.pop("labels")
             ppg = inputs.pop("ppg")
             outputs = model(

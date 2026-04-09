@@ -16,8 +16,9 @@ processed/
 figures
 utils/*.py
 utils/*.ipynb
-checkpoints/papagei/
-checkpoints/pulseppg/
+benchmark/checkpoints/papagei/
+benchmark/checkpoints/pulse*/
+wandb
 
 .env
 trash/
