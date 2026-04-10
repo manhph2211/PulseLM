@@ -208,6 +208,9 @@ def main():
     ap.add_argument("--print_every", type=int, default=200)
     ap.add_argument("--max_print_failures", type=int, default=30)
     ap.add_argument("--ppg_feat_dim", type=int, default=512)
+    ap.add_argument("--lora_r", type=int, default=64)
+    ap.add_argument("--lora_alpha", type=int, default=128)
+    ap.add_argument("--lora_dropout", type=float, default=0.1)
     args = ap.parse_args()
 
     from transformers import AutoTokenizer
@@ -277,7 +280,10 @@ def main():
     model = MultimodalPPGLLM(
         llm_name=args.llm_name,
         ppg_encoder=ppg_encoder,
-        setting="frozen",
+        setting="lora",
+        lora_r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
         cache_dir=args.cache_dir,
         token=hf_token,
         freeze_ppg_encoder=True,
