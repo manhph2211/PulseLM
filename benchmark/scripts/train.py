@@ -179,9 +179,9 @@ def resolve_default_paths(data_dir: str) -> Tuple[str, str, str]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out_dir", type=str, required=True)
-    parser.add_argument("--llm_name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument("--llm_name", type=str, default="meta-llama/Llama-3.2-1B-Instruct")
     parser.add_argument("--max_length", type=int, default=768)
-    parser.add_argument("--use_hf_dataset", action="store_true", default=False)
+    parser.add_argument("--use_hf_dataset", action="store_true", default=True)
     parser.add_argument("--hf_train_names", type=str, default="",
                         help="Comma-separated configs for train+val. Empty = all.")
     parser.add_argument("--data_dir", type=str, default="")
@@ -190,12 +190,12 @@ def main():
     parser.add_argument("--signals_npy", type=str, default="")
     parser.add_argument("--split_filter_train", type=str, default="")
     parser.add_argument("--split_filter_dev", type=str, default="")
-    parser.add_argument("--per_device_train_batch_size", type=int, default=8)
-    parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
+    parser.add_argument("--per_device_train_batch_size", type=int, default=64)
+    parser.add_argument("--per_device_eval_batch_size", type=int, default=64)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--ppg_proj_lr", type=float, default=3e-4)
-    parser.add_argument("--num_train_epochs", type=int, default=10)
+    parser.add_argument("--num_train_epochs", type=int, default=3)
     parser.add_argument("--warmup_ratio", type=float, default=0.03)
     parser.add_argument("--lr_scheduler_type", type=str, default="cosine")
     parser.add_argument("--bf16", action="store_true", default=True)
@@ -293,8 +293,10 @@ def main():
         max_grad_norm=1.0,
         report_to="wandb",
         remove_unused_columns=False,
-        eval_strategy="epoch",
-        save_strategy="epoch",
+        eval_strategy="steps",
+        eval_steps=2000,
+        save_strategy="steps",
+        save_steps=2000,
         save_total_limit=3,
         logging_steps=50,
         load_best_model_at_end=True,

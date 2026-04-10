@@ -19,6 +19,7 @@ utils/*.ipynb
 benchmark/checkpoints/papagei/
 benchmark/checkpoints/pulse*/
 wandb
+outputs/
 
 .env
 trash/
