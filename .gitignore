@@ -22,7 +22,11 @@ wandb
 outputs/
 ckpt/
 hf_model/
+huggingface/   
+assets/logs 
+runs
 .env
+logs/
 trash/
 # Byte-compiled / optimized / DLL files
 __pycache__/
