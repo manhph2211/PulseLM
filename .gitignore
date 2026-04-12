@@ -20,7 +20,8 @@ benchmark/checkpoints/papagei/
 benchmark/checkpoints/pulse*/
 wandb
 outputs/
-
+ckpt/
+hf_model/
 .env
 trash/
 # Byte-compiled / optimized / DLL files

@@ -34,56 +34,17 @@ def ensure_dir(p: str) -> None:
     os.makedirs(p, exist_ok=True)
 
 
-def build_prompt_from_messages(messages: List[Dict[str, Any]]) -> str:
-    parts: List[str] = []
-    for m in messages:
-        role = (m.get("role") or "").strip().lower()
-        content = (m.get("content") or "").rstrip()
-        if not content:
-            continue
-        if role in ("system", "user"):
-            parts.append(content)
-    return "\n\n".join(parts).rstrip()
+def build_prompt(messages: List[Dict[str, Any]], tokenizer) -> str:
+    prompt_msgs = [m for m in messages if m.get("role") in ("system", "user")]
+    return tokenizer.apply_chat_template(prompt_msgs, tokenize=False, add_generation_prompt=True)
 
 
-def _find_user_content(messages: List[Dict[str, Any]]) -> str:
-    for m in reversed(messages):
-        if (m.get("role") or "").strip().lower() == "user":
-            return (m.get("content") or "")
-    return ""
-
-
-_OPTIONS_HEADER_RE = re.compile(r"(?im)^\s*Options\s*:\s*$")
-_RETURN_HEADER_RE = re.compile(r"(?im)^\s*Return\s+ONLY\s*:\s*$")
-
-
-def extract_options_from_user(user_content: str) -> List[str]:
-    if not user_content:
-        return []
-    m = _OPTIONS_HEADER_RE.search(user_content)
-    if not m:
-        return []
-    tail = user_content[m.end():]
-    cut = _RETURN_HEADER_RE.search(tail)
-    if cut:
-        tail = tail[:cut.start()]
-    opts: List[str] = []
-    for line in tail.splitlines():
-        s = line.strip()
-        if not s:
-            continue
-        if s.startswith("-"):
-            o = s[1:].strip()
-            if o:
-                opts.append(o)
-    out: List[str] = []
-    seen = set()
-    for o in opts:
-        k = o.strip().lower()
-        if k and k not in seen:
-            seen.add(k)
-            out.append(o.strip())
-    return out
+def get_options(item: Dict[str, Any]) -> List[str]:
+    from dataset import CATEGORY_BANK
+    qcat = (item.get("meta") or {}).get("question_category", "")
+    if qcat in CATEGORY_BANK:
+        return CATEGORY_BANK[qcat]["answers"]
+    return []
 
 
 _ANSWER_TAG_RE = re.compile(r"<answer>\s*(?P<ans>.*?)\s*</answer>", flags=re.IGNORECASE | re.DOTALL)
@@ -288,10 +249,13 @@ def main():
         token=hf_token,
         freeze_ppg_encoder=True,
         ppg_feat_dim=args.ppg_feat_dim,
-    ).to(device).eval()
+    )
 
-    state = torch.load(args.full_state_path, map_location=device)
+    state = torch.load(args.full_state_path, map_location="cpu")
+    state = {k: v.to(torch.bfloat16) if v.is_floating_point() else v for k, v in state.items()}
     missing, unexpected = model.load_state_dict(state, strict=False)
+    del state
+    model = model.to(torch.bfloat16).to(device).eval()
     print(f"Loaded full_state. missing={len(missing)}, unexpected={len(unexpected)}")
 
     skip = Counter()
@@ -309,8 +273,7 @@ def main():
         per_q[qcat]["num_seen"] += 1
         per_ds[dset]["num_seen"] += 1
 
-        user_text = _find_user_content(it.get("messages", []) or [])
-        options = extract_options_from_user(user_text)
+        options = get_options(it)
         if not options:
             skip["no_options"] += 1
             per_q[qcat]["skip_no_options"] += 1
@@ -358,7 +321,7 @@ def main():
         if args.ppg_unsqueeze_channel:
             ppg = ppg.unsqueeze(1)
 
-        prompt = build_prompt_from_messages(it.get("messages", []) or [])
+        prompt = build_prompt(it.get("messages", []) or [], tokenizer)
         enc = tokenizer(prompt, return_tensors="pt", padding=True)
         input_ids = enc["input_ids"].to(device)
         attention_mask = enc["attention_mask"].to(device)
@@ -378,10 +341,7 @@ def main():
         with torch.no_grad():
             gen_ids = model.generate(**gen_kwargs)
 
-        input_len = input_ids.shape[1]
-        gen_len = gen_ids.shape[1]
-        new_tokens = gen_ids[0][input_len:] if gen_len >= input_len else gen_ids[0]
-        out_text = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+        out_text = tokenizer.decode(gen_ids[0], skip_special_tokens=True).strip()
 
         if out_text == "":
             skip["empty_output"] += 1

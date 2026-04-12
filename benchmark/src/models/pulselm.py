@@ -82,7 +82,8 @@ class MultimodalPPGLLM(nn.Module):
         if labels is not None:
             labels = labels.to(device)
 
-        ppg = ppg.to(device)
+        model_dtype = next(self.ppg_encoder.parameters()).dtype
+        ppg = ppg.to(device=device, dtype=model_dtype)
         with torch.set_grad_enabled(any(p.requires_grad for p in self.ppg_encoder.parameters())):
             ppg_feats = get_ppg_features(self.ppg_encoder, ppg)
 
@@ -117,7 +118,8 @@ class MultimodalPPGLLM(nn.Module):
         if attention_mask is not None:
             attention_mask = attention_mask.to(device)
 
-        ppg = ppg.to(device)
+        model_dtype = next(self.ppg_encoder.parameters()).dtype
+        ppg = ppg.to(device=device, dtype=model_dtype)
         ppg_feats = get_ppg_features(self.ppg_encoder, ppg)
         ppg_tok = self.ppg_proj(ppg_feats).unsqueeze(1)
         text_embeds = self.llm.get_input_embeddings()(input_ids)
