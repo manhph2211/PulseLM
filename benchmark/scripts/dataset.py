@@ -219,7 +219,6 @@ CATEGORY_BANK: Dict[str, Dict[str, List[str]]] = {
 
 
 def _make_messages(
-    text_ctx: str,
     category: str,
     answer: str,
     rng: random.Random,
@@ -233,10 +232,8 @@ def _make_messages(
         "- Answer MUST be exactly one option from the provided list.\n"
         "- Output format MUST be strict: <answer>OPTION</answer>\n"
         "- Do not output any extra text.\n"
-        "- If the context is insufficient, still choose the best option from the list.\n"
     )
     user = (
-        f"Context:\n{text_ctx.strip() if text_ctx.strip() else '(no context provided)'}\n\n"
         f"Task:\n{q}\n\n"
         f"Options:\n" + "\n".join(f"- {o}" for o in opts) + "\n\n"
         "Return ONLY:\n<answer>OPTION</answer>"
@@ -285,7 +282,6 @@ class HFPulseLMDataset(Dataset):
             ds = load_dataset("Manhph2211/PulseLM", name, split=split)
             for row in ds:
                 sig = np.array(row["signal"], dtype=np.float32)
-                text_ctx = (row["text"] or "").strip()
                 qa = _parse_qa(row["qa"])
                 if not isinstance(qa, dict):
                     continue
@@ -295,7 +291,7 @@ class HFPulseLMDataset(Dataset):
                     ans = payload.get("answer", str(payload)) if isinstance(payload, dict) else str(payload)
                     if ans not in CATEGORY_BANK[category]["answers"]:
                         continue
-                    messages = _make_messages(text_ctx, category, ans, self._rng)
+                    messages = _make_messages(category, ans, self._rng)
                     self._examples.append((sig, messages))
 
     def __len__(self) -> int:

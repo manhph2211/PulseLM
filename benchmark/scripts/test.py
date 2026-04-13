@@ -122,7 +122,6 @@ def load_hf_items(dataset_names, split, seed):
         ds = load_dataset("Manhph2211/PulseLM", name, split=split)
         for row_idx, row in enumerate(ds):
             sig = np.array(row["signal"], dtype=np.float32)
-            text_ctx = (row["text"] or "").strip()
             qa = _parse_qa(row["qa"])
             if not isinstance(qa, dict):
                 continue
@@ -132,7 +131,7 @@ def load_hf_items(dataset_names, split, seed):
                 ans = payload.get("answer", str(payload)) if isinstance(payload, dict) else str(payload)
                 if ans not in CATEGORY_BANK[category]["answers"]:
                     continue
-                messages = _make_messages(text_ctx, category, ans, rng)
+                messages = _make_messages(category, ans, rng)
                 items.append({
                     "id": f"{name}__row{row_idx}__{category}",
                     "meta": {"dataset": name, "question_category": category, "split": split},
