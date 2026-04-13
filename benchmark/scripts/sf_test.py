@@ -162,7 +162,6 @@ def main():
     ap.add_argument("--seed", type=int, default=256)
     ap.add_argument("--max_samples", type=int, default=0)
     ap.add_argument("--max_new_tokens", type=int, default=32)
-    ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--do_sample", action="store_true")
     ap.add_argument("--temperature", type=float, default=None)
     ap.add_argument("--ppg_unsqueeze_channel", action="store_true")
@@ -258,9 +257,6 @@ def main():
     model = model.to(torch.bfloat16).to(device).eval()
     print(f"Loaded full_state. missing={len(missing)}, unexpected={len(unexpected)}")
 
-    # Left-padding is required for batched generation so all sequences are right-aligned
-    tokenizer.padding_side = "left"
-
     skip = Counter()
     overall = Counter()
     per_q = defaultdict(Counter)
@@ -269,180 +265,151 @@ def main():
     signals_cache = SignalsCache()
     fout = open(pred_jsonl_path, "w", encoding="utf-8")
 
-    gen_base_kwargs = dict(
-        max_new_tokens=args.max_new_tokens,
-        do_sample=args.do_sample,
-        pad_token_id=tokenizer.pad_token_id,
-        eos_token_id=tokenizer.eos_token_id,
-    )
-    if args.temperature is not None and args.do_sample:
-        gen_base_kwargs["temperature"] = args.temperature
+    for i, it in enumerate(items, 1):
+        meta = it.get("meta", {}) or {}
+        qcat = meta.get("question_category", "UNKNOWN")
+        dset = meta.get("dataset", "UNKNOWN")
+        per_q[qcat]["num_seen"] += 1
+        per_ds[dset]["num_seen"] += 1
 
-    items_processed = 0
-
-    for batch_start in range(0, len(items), args.batch_size):
-        batch_all = items[batch_start:batch_start + args.batch_size]
-
-        # --- Validate and prepare each item in the batch ---
-        ready = []  # (it, ppg_tensor, options, gt_canon, sig_path, sig_idx)
-        for it in batch_all:
-            meta = it.get("meta", {}) or {}
-            qcat = meta.get("question_category", "UNKNOWN")
-            dset = meta.get("dataset", "UNKNOWN")
-            per_q[qcat]["num_seen"] += 1
-            per_ds[dset]["num_seen"] += 1
-
-            options = get_options(it)
-            if not options:
-                skip["no_options"] += 1
-                per_q[qcat]["skip_no_options"] += 1
-                continue
-
-            gt = it.get("label", {}) or {}
-            gt_ans = gt.get("answer", None)
-            if not isinstance(gt_ans, str) or not gt_ans.strip():
-                skip["missing_gt"] += 1
-                per_q[qcat]["skip_missing_gt"] += 1
-                continue
-
-            gt_canon = _canon_from_options(gt_ans, options)
-            if gt_canon is None:
-                skip["gt_not_in_options"] += 1
-                per_q[qcat]["skip_gt_not_in_options"] += 1
-                continue
-
-            per_q[qcat]["num_eligible"] += 1
-
-            sig_path = None
-            sig_idx = None
-            if "_signal_array" in it:
-                ppg = torch.tensor(it["_signal_array"], dtype=torch.float32)
-            else:
-                sig_ref = it.get("signal_ref", {}) or {}
-                try:
-                    sig_idx = int(sig_ref.get("index"))
-                except Exception:
-                    skip["bad_signal_index"] += 1
-                    per_q[qcat]["skip_bad_signal_index"] += 1
-                    continue
-                sig_path = sig_ref.get("path", "signals.npy")
-                try:
-                    arr = signals_cache.get(args.data_dir, sig_path)
-                except FileNotFoundError:
-                    skip["signals_file_missing"] += 1
-                    per_q[qcat]["skip_signals_file_missing"] += 1
-                    continue
-                if sig_idx < 0 or sig_idx >= len(arr):
-                    skip["signal_index_oob"] += 1
-                    per_q[qcat]["skip_signal_index_oob"] += 1
-                    continue
-                ppg = torch.tensor(arr[sig_idx], dtype=torch.float32)
-
-            if args.ppg_unsqueeze_channel:
-                ppg = ppg.unsqueeze(0)
-
-            ready.append((it, ppg, options, gt_canon, sig_path, sig_idx))
-
-        if not ready:
+        options = get_options(it)
+        if not options:
+            skip["no_options"] += 1
+            per_q[qcat]["skip_no_options"] += 1
             continue
 
-        # --- Batch tokenize (left-padded) ---
-        prompts = [build_prompt(it.get("messages", []) or [], tokenizer) for it, *_ in ready]
-        enc = tokenizer(prompts, return_tensors="pt", padding=True)
+        gt = it.get("label", {}) or {}
+        gt_ans = gt.get("answer", None)
+        if not isinstance(gt_ans, str) or not gt_ans.strip():
+            skip["missing_gt"] += 1
+            per_q[qcat]["skip_missing_gt"] += 1
+            continue
+
+        gt_canon = _canon_from_options(gt_ans, options)
+        if gt_canon is None:
+            skip["gt_not_in_options"] += 1
+            per_q[qcat]["skip_gt_not_in_options"] += 1
+            continue
+
+        per_q[qcat]["num_eligible"] += 1
+
+        sig_path = None
+        sig_idx = None
+        if "_signal_array" in it:
+            ppg = torch.tensor(it["_signal_array"], dtype=torch.float32, device=device).unsqueeze(0)
+        else:
+            sig_ref = it.get("signal_ref", {}) or {}
+            try:
+                sig_idx = int(sig_ref.get("index"))
+            except Exception:
+                skip["bad_signal_index"] += 1
+                per_q[qcat]["skip_bad_signal_index"] += 1
+                continue
+            sig_path = sig_ref.get("path", "signals.npy")
+            try:
+                arr = signals_cache.get(args.data_dir, sig_path)
+            except FileNotFoundError:
+                skip["signals_file_missing"] += 1
+                per_q[qcat]["skip_signals_file_missing"] += 1
+                continue
+            if sig_idx < 0 or sig_idx >= len(arr):
+                skip["signal_index_oob"] += 1
+                per_q[qcat]["skip_signal_index_oob"] += 1
+                continue
+            ppg = torch.tensor(arr[sig_idx], dtype=torch.float32, device=device).unsqueeze(0)
+        if args.ppg_unsqueeze_channel:
+            ppg = ppg.unsqueeze(1)
+
+        prompt = build_prompt(it.get("messages", []) or [], tokenizer)
+        enc = tokenizer(prompt, return_tensors="pt", padding=True)
         input_ids = enc["input_ids"].to(device)
         attention_mask = enc["attention_mask"].to(device)
 
-        # --- Batch PPG ---
-        ppg_batch = torch.stack([ppg for _, ppg, *_ in ready]).to(device)
+        gen_kwargs = dict(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            ppg=ppg,
+            max_new_tokens=args.max_new_tokens,
+            do_sample=args.do_sample,
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+        )
+        if args.temperature is not None and args.do_sample:
+            gen_kwargs["temperature"] = args.temperature
 
-        # --- Generate for entire batch ---
         with torch.no_grad():
-            gen_ids = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                ppg=ppg_batch,
-                **gen_base_kwargs,
-            )
+            gen_ids = model.generate(**gen_kwargs)
 
-        # --- Score each item ---
-        for j, (it, ppg, options, gt_canon, sig_path, sig_idx) in enumerate(ready):
-            items_processed += 1
-            meta = it.get("meta", {}) or {}
-            qcat = meta.get("question_category", "UNKNOWN")
-            dset = meta.get("dataset", "UNKNOWN")
-            gt = it.get("label", {}) or {}
-            gt_ans = gt.get("answer", "")
+        out_text = tokenizer.decode(gen_ids[0], skip_special_tokens=True).strip()
 
-            out_text = tokenizer.decode(gen_ids[j], skip_special_tokens=True).strip()
+        if out_text == "":
+            skip["empty_output"] += 1
+            per_q[qcat]["empty_output"] += 1
+            continue
 
-            if out_text == "":
-                skip["empty_output"] += 1
-                per_q[qcat]["empty_output"] += 1
-                continue
+        parsed = parse_answer(out_text, options)
+        pred_ans = parsed["answer"]
 
-            parsed = parse_answer(out_text, options)
-            pred_ans = parsed["answer"]
+        overall["scored"] += 1
+        per_q[qcat]["scored"] += 1
+        per_ds[dset]["scored"] += 1
 
-            overall["scored"] += 1
-            per_q[qcat]["scored"] += 1
-            per_ds[dset]["scored"] += 1
+        if parsed["raw_extracted"] is not None:
+            overall["parse_ok"] += 1
+            per_q[qcat]["parse_ok"] += 1
 
-            if parsed["raw_extracted"] is not None:
-                overall["parse_ok"] += 1
-                per_q[qcat]["parse_ok"] += 1
+        if pred_ans is not None and parsed["in_options"]:
+            overall["pred_in_options"] += 1
+            per_q[qcat]["pred_in_options"] += 1
+        else:
+            skip["pred_not_in_options_or_parse_failed"] += 1
+            per_q[qcat]["skip_pred_not_in_options_or_parse_failed"] += 1
 
-            if pred_ans is not None and parsed["in_options"]:
-                overall["pred_in_options"] += 1
-                per_q[qcat]["pred_in_options"] += 1
-            else:
-                skip["pred_not_in_options_or_parse_failed"] += 1
-                per_q[qcat]["skip_pred_not_in_options_or_parse_failed"] += 1
+        is_correct = (pred_ans == gt_canon)
+        if is_correct:
+            overall["correct"] += 1
+            per_q[qcat]["correct"] += 1
+            per_ds[dset]["correct"] += 1
 
-            is_correct = (pred_ans == gt_canon)
-            if is_correct:
-                overall["correct"] += 1
-                per_q[qcat]["correct"] += 1
-                per_ds[dset]["correct"] += 1
+        record = {
+            "id": it.get("id"),
+            "meta": meta,
+            "signal_ref": {"path": sig_path, "index": sig_idx},
+            "gt": {"answer": gt_canon, "raw": gt_ans, "options": options},
+            "pred": {"answer": pred_ans},
+            "parse": {
+                "ok_answer_tag": parsed["ok_answer_tag"],
+                "raw_extracted": parsed["raw_extracted"],
+                "in_options": parsed["in_options"],
+            },
+            "raw_text": out_text,
+            "is_correct": is_correct,
+        }
+        fout.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-            record = {
-                "id": it.get("id"),
-                "meta": meta,
-                "signal_ref": {"path": sig_path, "index": sig_idx},
-                "gt": {"answer": gt_canon, "raw": gt_ans, "options": options},
-                "pred": {"answer": pred_ans},
-                "parse": {
-                    "ok_answer_tag": parsed["ok_answer_tag"],
-                    "raw_extracted": parsed["raw_extracted"],
-                    "in_options": parsed["in_options"],
-                },
-                "raw_text": out_text,
-                "is_correct": is_correct,
-            }
-            fout.write(json.dumps(record, ensure_ascii=False) + "\n")
+        if failures_printed < args.max_print_failures:
+            need_print = False
+            reasons = []
+            if pred_ans is None:
+                need_print = True
+                reasons.append("parse_failed_or_not_in_options")
+            elif not is_correct:
+                need_print = True
+                reasons.append("answer_mismatch")
+            if need_print:
+                failures_printed += 1
+                print(f"\n{'='*80}")
+                print(f"[FAIL #{failures_printed}] qcat={qcat} id={it.get('id')} idx={sig_idx} reason={', '.join(reasons)}")
+                print(f"OPTIONS: {options}")
+                print(f"GT:   {gt_canon}")
+                print(f"PRED: {pred_ans}")
+                print(f"RAW_OUT: {out_text}")
+                print(f"{'='*80}\n")
 
-            if failures_printed < args.max_print_failures:
-                need_print = False
-                reasons = []
-                if pred_ans is None:
-                    need_print = True
-                    reasons.append("parse_failed_or_not_in_options")
-                elif not is_correct:
-                    need_print = True
-                    reasons.append("answer_mismatch")
-                if need_print:
-                    failures_printed += 1
-                    print(f"\n{'='*80}")
-                    print(f"[FAIL #{failures_printed}] qcat={qcat} id={it.get('id')} idx={sig_idx} reason={', '.join(reasons)}")
-                    print(f"OPTIONS: {options}")
-                    print(f"GT:   {gt_canon}")
-                    print(f"PRED: {pred_ans}")
-                    print(f"RAW_OUT: {out_text}")
-                    print(f"{'='*80}\n")
-
-        if (items_processed // args.print_every) != ((items_processed - len(ready)) // args.print_every):
+        if (i % args.print_every) == 0:
             acc = (overall["correct"] / overall["scored"]) if overall["scored"] else 0.0
             pr = (overall["pred_in_options"] / overall["scored"]) if overall["scored"] else 0.0
-            print(f"[PROGRESS] {items_processed}/{len(items)} scored={overall['scored']} acc={acc:.4f} pred_in_options={pr:.4f} skips={sum(skip.values())}")
+            print(f"[PROGRESS] {i}/{len(items)} scored={overall['scored']} acc={acc:.4f} pred_in_options={pr:.4f} skips={sum(skip.values())}")
 
     fout.close()
 
