@@ -1,0 +1,41 @@
+{
+  "activity_label": {
+    "answers": ["cycling", "driving", "lunch_break", "sitting", "stairs", "table_soccer", "unknown_0", "walking", "working"]
+  },
+  "af_label": {
+    "answers": ["af", "non_af"]
+  },
+  "arrhythmia_category": {
+    "answers": ["af", "pac", "pvc", "sinus_rhythm", "svt", "vt"]
+  },
+  "blood_pressure_category": {
+    "answers": ["elevated", "hypertension_stage1", "hypertension_stage2", "hypertensive_crisis", "normal"]
+  },
+  "heart_rate_category": {
+    "answers": ["bradycardia", "normal", "tachycardia"]
+  },
+  "hrv_pnn50_category": {
+    "answers": ["high", "low", "normal"]
+  },
+  "hrv_rmssd_category": {
+    "answers": ["high", "low", "normal"]
+  },
+  "hrv_sdnn_category": {
+    "answers": ["high", "low", "normal"]
+  },
+  "rr_category": {
+    "answers": ["bradypnea", "normal", "tachypnea"]
+  },
+  "sdb_label": {
+    "answers": ["mild_5<=ahi<15", "moderate_15<=ahi<30", "normal_ahi<5", "severe_ahi>=30"]
+  },
+  "spo2_category": {
+    "answers": ["mild_hypoxemia", "moderate_hypoxemia", "normal", "severe_hypoxemia"]
+  },
+  "sqi_category": {
+    "answers": ["good_quality", "noisy_or_distorted", "symmetric_unusual"]
+  },
+  "stress_label": {
+    "answers": ["amusement", "baseline", "meditation", "stress"]
+  }
+}

@@ -40,10 +40,10 @@ def build_prompt(messages: List[Dict[str, Any]], tokenizer) -> str:
 
 
 def get_options(item: Dict[str, Any]) -> List[str]:
-    from dataset import CATEGORY_BANK
+    from dataset import CATEGORY_SCHEMA
     qcat = (item.get("meta") or {}).get("question_category", "")
-    if qcat in CATEGORY_BANK:
-        return CATEGORY_BANK[qcat]["answers"]
+    if qcat in CATEGORY_SCHEMA:
+        return CATEGORY_SCHEMA[qcat]["answers"]
     return []
 
 
@@ -111,13 +111,13 @@ class SignalsCache:
 
 def load_hf_items(dataset_names, split, seed):
     from datasets import load_dataset, get_dataset_config_names
-    from dataset import CATEGORY_BANK, _make_messages, _parse_qa
+    from dataset import CATEGORY_SCHEMA, _make_messages, _parse_qa
 
     if dataset_names is None:
         dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
 
-    rng = random.Random(seed)
     items = []
+    skipped = 0
     for name in dataset_names:
         ds = load_dataset("Manhph2211/PulseLM", name, split=split)
         for row_idx, row in enumerate(ds):
@@ -126,12 +126,18 @@ def load_hf_items(dataset_names, split, seed):
             if not isinstance(qa, dict):
                 continue
             for category, payload in qa.items():
-                if category not in CATEGORY_BANK:
+                if category not in CATEGORY_SCHEMA:
                     continue
-                ans = payload.get("answer", str(payload)) if isinstance(payload, dict) else str(payload)
-                if ans not in CATEGORY_BANK[category]["answers"]:
+                if not isinstance(payload, dict):
                     continue
-                messages = _make_messages(category, ans, rng)
+                ans = payload.get("answer", "")
+                if ans not in CATEGORY_SCHEMA[category]["answers"]:
+                    continue
+                question = payload.get("question")
+                if not question:
+                    skipped += 1
+                    continue
+                messages = _make_messages(category, ans, question)
                 items.append({
                     "id": f"{name}__row{row_idx}__{category}",
                     "meta": {"dataset": name, "question_category": category, "split": split},
@@ -139,6 +145,8 @@ def load_hf_items(dataset_names, split, seed):
                     "messages": messages,
                     "_signal_array": sig,
                 })
+    if skipped:
+        print(f"[load_hf_items] Skipped {skipped} examples missing 'question' field in qa payload.")
     return items
 
 

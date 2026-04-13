@@ -1,6 +1,5 @@
 import os
 import json
-import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -9,223 +8,24 @@ import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset, get_dataset_config_names
 
-CATEGORY_BANK: Dict[str, Dict[str, List[str]]] = {
-"activity_label": {
-    "questions": [
-      "Categorize the physical activity.",
-      "Classify the activity type.",
-      "Determine the activity category for this sample.",
-      "Identify the physical activity for this segment.",
-      "Identify what the subject was doing during this recording.",
-      "What activity does this PPG correspond to?",
-      "What activity was being performed during this PPG recording?",
-      "What is the activity label for this sample?",
-      "What is the motion/activity state for this segment?",
-      "What type of activity is shown in this recording?"
-    ],
-    "answers": [
-      "cycling", "driving", "lunch_break", "sitting", "stairs",
-      "table_soccer", "unknown_0", "walking", "working"
-    ]
-  },
-  "af_label": {
-    "questions": [
-      "Assess whether atrial fibrillation is present in this PPG.",
-      "Classify this PPG as AF or non-AF.",
-      "Determine whether this signal indicates atrial fibrillation.",
-      "Does this PPG signal show atrial fibrillation?",
-      "Does this waveform indicate AF?",
-      "Is atrial fibrillation present in this recording?",
-      "Is this a normal rhythm or atrial fibrillation?",
-      "Provide the atrial fibrillation detection result.",
-      "What is the AF detection result for this segment?",
-      "What is the AF label for this PPG recording?"
-    ],
-    "answers": ["af", "non_af"]
-  },
-  "arrhythmia_category": {
-    "questions": [
-      "Assess the arrhythmia classification from this recording.",
-      "Categorize the heart rhythm abnormality.",
-      "Classify the cardiac rhythm in this recording.",
-      "Determine the rhythm classification for this waveform.",
-      "Identify the arrhythmia type from the signal.",
-      "Is this a normal rhythm or arrhythmia?",
-      "What cardiac rhythm category does this sample belong to?",
-      "What is the arrhythmia category for this segment?",
-      "What is the rhythm diagnosis for this segment?",
-      "What type of arrhythmia does this signal show?"
-    ],
-    "answers": ["af", "pac", "pvc", "sinus_rhythm", "svt", "vt"]
-  },
-  "blood_pressure_category": {
-    "questions": [
-      "Based on the PPG, what is the BP category?",
-      "Categorize the blood pressure level.",
-      "Classify the blood pressure level shown in this PPG segment.",
-      "Determine the BP classification from this waveform.",
-      "Does this sample indicate normal blood pressure or hypertension?",
-      "Provide the blood pressure risk category.",
-      "What blood pressure class does this sample belong to?",
-      "What hypertension stage does this PPG correspond to?",
-      "What is the blood pressure category for this sample?",
-      "What is the blood pressure status for this recording?"
-    ],
-    "answers": [
-      "elevated", "hypertension_stage1", "hypertension_stage2",
-      "hypertensive_crisis", "normal"
-    ]
-  },
-  "heart_rate_category": {
-    "questions": [
-      "Based on the PPG waveform, what is the HR category?",
-      "Categorize the heart rate shown in this recording.",
-      "Classify the heart rate based on this waveform.",
-      "Determine the heart rate category from the signal.",
-      "Is the heart rate normal, bradycardic, or tachycardic?",
-      "Provide the clinical heart rate category.",
-      "What heart rate classification does this PPG indicate?",
-      "What is the heart rate category for this PPG segment?",
-      "What is the heart rate status for this sample?",
-      "Which heart rate class does this sample belong to?"
-    ],
-    "answers": ["bradycardia", "normal", "tachycardia"]
-  },
-  "hrv_pnn50_category": {
-    "questions": [
-      "Assess the pNN50 category from this PPG.",
-      "Categorize the pNN50 variability measure.",
-      "Classify the pNN50 level.",
-      "Determine the pNN50 level for this recording.",
-      "How would you categorize pNN50 for this PPG?",
-      "Is pNN50 low, normal, or high in this sample?",
-      "Provide the pNN50 category.",
-      "What is the pNN50 category for this segment?",
-      "What is the pNN50-based HRV classification?",
-      "What pNN50 class does this sample belong to?"
-    ],
-    "answers": ["high", "low", "normal"]
-  },
-  "hrv_rmssd_category": {
-    "questions": [
-      "Assess the RMSSD-based variability level.",
-      "Categorize the short-term HRV (RMSSD).",
-      "Classify the RMSSD-based heart rate variability.",
-      "Determine the RMSSD classification.",
-      "How would you categorize RMSSD here?",
-      "Is the RMSSD low, normal, or high?",
-      "Provide the RMSSD category for this sample.",
-      "What RMSSD class does this recording indicate?",
-      "What is the HRV RMSSD category for this segment?",
-      "What is the parasympathetic activity level (RMSSD)?"
-    ],
-    "answers": ["high", "low", "normal"]
-  },
-  "hrv_sdnn_category": {
-    "questions": [
-      "Assess the SDNN-based variability category.",
-      "Categorize the overall HRV (SDNN) level.",
-      "Classify the SDNN-based heart rate variability level.",
-      "Determine the SDNN level for this recording.",
-      "How would you categorize SDNN for this PPG?",
-      "Is the SDNN low, normal, or high in this sample?",
-      "Provide the SDNN category based on this PPG segment.",
-      "What SDNN class does this sample belong to?",
-      "What is the HRV SDNN category for this segment?",
-      "What is the SDNN-based HRV classification?"
-    ],
-    "answers": ["high", "low", "normal"]
-  },
-  "rr_category": {
-    "questions": [
-      "Assess the respiratory rate category from this PPG.",
-      "Categorize the breathing rate.",
-      "Classify the respiratory rate level.",
-      "Determine the respiratory rate category for this recording.",
-      "How would you categorize the respiratory rate here?",
-      "Is the respiratory rate normal, slow, or fast?",
-      "Provide the respiratory rate category.",
-      "What is the breathing rate classification for this segment?",
-      "What is the respiratory rate category for this sample?",
-      "What respiratory rate class does this sample belong to?"
-    ],
-    "answers": ["bradypnea", "normal", "tachypnea"]
-  },
-  "sdb_label": {
-    "questions": [
-      "Assess the respiratory disturbance category.",
-      "Categorize the breathing disorder level.",
-      "Classify the sleep breathing pattern.",
-      "Determine the sleep apnea severity.",
-      "Does this segment indicate sleep apnea?",
-      "Provide the SDB classification for this PPG window.",
-      "What is the AHI-based severity category?",
-      "What is the breathing disorder category?",
-      "What is the sleep-disordered breathing label for this segment?",
-      "What sleep-disordered breathing class is this?"
-    ],
-    "answers": [
-      "mild_5<=ahi<15", "moderate_15<=ahi<30", "normal_ahi<5", "severe_ahi>=30"
-    ]
-  },
-  "spo2_category": {
-    "questions": [
-      "Assess the oxygen saturation level from this PPG.",
-      "Categorize the SpO2 level.",
-      "Classify the blood oxygen saturation.",
-      "Determine the SpO2 category for this recording.",
-      "How would you categorize SpO2 for this PPG?",
-      "Is the SpO2 normal or does it indicate hypoxemia?",
-      "Provide the oxygen saturation category.",
-      "What SpO2 class does this sample belong to?",
-      "What is the SpO2 category for this segment?",
-      "What is the oxygen saturation classification?"
-    ],
-    "answers": [
-      "mild_hypoxemia", "moderate_hypoxemia", "normal", "severe_hypoxemia"
-    ]
-  },
-  "sqi_category": {
-    "questions": [
-      "Assess the signal quality of this PPG recording.",
-      "Classify the PPG signal quality based on skewness.",
-      "Determine the signal quality index category.",
-      "How would you categorize the signal quality here?",
-      "Is this PPG recording of good or poor quality?",
-      "Is this PPG signal clean or motion distorted?",
-      "Provide the SQI quality category for this sample.",
-      "Rate the quality of this PPG signal.",
-      "What is the SQI classification for this segment?",
-      "What is the signal quality category for this PPG waveform?"
-    ],
-    "answers": ["good_quality", "noisy_or_distorted", "symmetric_unusual"]
-  },
-  "stress_label": {
-    "questions": [
-      "Categorize the stress condition for this sample.",
-      "Classify the stress level from this PPG.",
-      "Determine the emotional/stress state.",
-      "Identify the stress level for this segment.",
-      "Provide the stress state for this PPG window.",
-      "What is the affective state for this recording?",
-      "What is the emotional state label?",
-      "What is the stress label for this segment?",
-      "What psychological state does this segment indicate?",
-      "What stress category does this sample belong to?"
-    ],
-    "answers": ["amusement", "baseline", "meditation", "stress"]
-  }
-}
+_SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "category_schema.json")
+
+
+def load_category_schema() -> Dict[str, Dict[str, List[str]]]:
+    with open(_SCHEMA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Loaded once at import time — add new categories to category_schema.json, not here
+CATEGORY_SCHEMA: Dict[str, Dict[str, List[str]]] = load_category_schema()
 
 
 def _make_messages(
     category: str,
     answer: str,
-    rng: random.Random,
+    question: str,
 ) -> List[Dict[str, str]]:
-    bank = CATEGORY_BANK[category]
-    q = rng.choice(bank["questions"])
-    opts = bank["answers"]
+    opts = CATEGORY_SCHEMA[category]["answers"]
     system = (
         "You are a physiological signal analysis expert specializing in PPG-based clinical classification.\n"
         "Rules:\n"
@@ -234,8 +34,8 @@ def _make_messages(
         "- Do not output any extra text.\n"
     )
     user = (
-        f"Task:\n{q}\n\n"
-        f"Options:\n" + "\n".join(f"- {o}" for o in opts) + "\n\n"
+        f"Task:\n{question}\n\n"
+        "Options:\n" + "\n".join(f"- {o}" for o in opts) + "\n\n"
         "Return ONLY:\n<answer>OPTION</answer>"
     )
     return [
@@ -271,12 +71,12 @@ class HFPulseLMDataset(Dataset):
         self.max_length = max_length
         self.ignore_index = ignore_index
         self.use_chat_template = use_chat_template
-        self._rng = random.Random(seed)
 
         if dataset_names is None:
             dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
 
         self._examples: List[Tuple[np.ndarray, List[Dict[str, str]]]] = []
+        skipped = 0
 
         for name in dataset_names:
             ds = load_dataset("Manhph2211/PulseLM", name, split=split)
@@ -286,13 +86,22 @@ class HFPulseLMDataset(Dataset):
                 if not isinstance(qa, dict):
                     continue
                 for category, payload in qa.items():
-                    if category not in CATEGORY_BANK:
+                    if category not in CATEGORY_SCHEMA:
                         continue
-                    ans = payload.get("answer", str(payload)) if isinstance(payload, dict) else str(payload)
-                    if ans not in CATEGORY_BANK[category]["answers"]:
+                    if not isinstance(payload, dict):
                         continue
-                    messages = _make_messages(category, ans, self._rng)
+                    ans = payload.get("answer", "")
+                    if ans not in CATEGORY_SCHEMA[category]["answers"]:
+                        continue
+                    question = payload.get("question")
+                    if not question:
+                        skipped += 1
+                        continue
+                    messages = _make_messages(category, ans, question)
                     self._examples.append((sig, messages))
+
+        if skipped:
+            print(f"[HFPulseLMDataset] Skipped {skipped} examples missing 'question' field in qa payload.")
 
     def __len__(self) -> int:
         return len(self._examples)

@@ -40,10 +40,10 @@ def build_prompt(messages: List[Dict[str, Any]], tokenizer) -> str:
 
 
 def get_options(item: Dict[str, Any]) -> List[str]:
-    from dataset import CATEGORY_BANK
+    from dataset import CATEGORY_SCHEMA
     qcat = (item.get("meta") or {}).get("question_category", "")
-    if qcat in CATEGORY_BANK:
-        return CATEGORY_BANK[qcat]["answers"]
+    if qcat in CATEGORY_SCHEMA:
+        return CATEGORY_SCHEMA[qcat]["answers"]
     return []
 
 
@@ -111,13 +111,13 @@ class SignalsCache:
 
 def load_hf_items(dataset_names, split, seed):
     from datasets import load_dataset, get_dataset_config_names
-    from dataset import CATEGORY_BANK, _make_messages, _parse_qa
+    from dataset import CATEGORY_SCHEMA, _make_messages, _parse_qa
 
     if dataset_names is None:
         dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
 
-    rng = random.Random(seed)
     items = []
+    skipped = 0
     for name in dataset_names:
         ds = load_dataset("Manhph2211/PulseLM", name, split=split)
         for row_idx, row in enumerate(ds):
@@ -126,12 +126,18 @@ def load_hf_items(dataset_names, split, seed):
             if not isinstance(qa, dict):
                 continue
             for category, payload in qa.items():
-                if category not in CATEGORY_BANK:
+                if category not in CATEGORY_SCHEMA:
                     continue
-                ans = payload.get("answer", str(payload)) if isinstance(payload, dict) else str(payload)
-                if ans not in CATEGORY_BANK[category]["answers"]:
+                if not isinstance(payload, dict):
                     continue
-                messages = _make_messages(category, ans, rng)
+                ans = payload.get("answer", "")
+                if ans not in CATEGORY_SCHEMA[category]["answers"]:
+                    continue
+                question = payload.get("question")
+                if not question:
+                    skipped += 1
+                    continue
+                messages = _make_messages(category, ans, question)
                 items.append({
                     "id": f"{name}__row{row_idx}__{category}",
                     "meta": {"dataset": name, "question_category": category, "split": split},
@@ -139,6 +145,8 @@ def load_hf_items(dataset_names, split, seed):
                     "messages": messages,
                     "_signal_array": sig,
                 })
+    if skipped:
+        print(f"[load_hf_items] Skipped {skipped} examples missing 'question' field in qa payload.")
     return items
 
 
@@ -153,7 +161,9 @@ def main():
     ap.add_argument("--split_filter", type=str, default="test")
     ap.add_argument("--question_category_filter", type=str, default="")
     ap.add_argument("--out_dir", type=str, required=True)
-    ap.add_argument("--full_state_path", type=str, required=True)
+    ap.add_argument("--full_state_path", type=str, default="")
+    ap.add_argument("--skip_ckpt", action="store_true", default=False,
+                    help="Skip loading checkpoint — runs with random weights to verify the pipeline.")
     ap.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["pulseppg", "papagei"])
     ap.add_argument("--ppg_encoder_ckpt", type=str, required=True)
     ap.add_argument("--llm_name", type=str, required=True)
@@ -185,7 +195,7 @@ def main():
 
     hf_token = args.hf_token or os.environ.get("HF_TOKEN", None)
 
-    if not os.path.exists(args.full_state_path):
+    if not args.skip_ckpt and not os.path.exists(args.full_state_path):
         raise FileNotFoundError(f"Missing full_state: {args.full_state_path}")
     if not os.path.exists(args.ppg_encoder_ckpt):
         raise FileNotFoundError(f"Missing PPG encoder ckpt: {args.ppg_encoder_ckpt}")
@@ -251,12 +261,16 @@ def main():
         ppg_feat_dim=args.ppg_feat_dim,
     )
 
-    state = torch.load(args.full_state_path, map_location="cpu")
-    state = {k: v.to(torch.bfloat16) if v.is_floating_point() else v for k, v in state.items()}
-    missing, unexpected = model.load_state_dict(state, strict=False)
-    del state
+    missing, unexpected = [], []
+    if args.skip_ckpt:
+        print("[skip_ckpt] Running with random weights — pipeline check only, predictions will be meaningless.")
+    else:
+        state = torch.load(args.full_state_path, map_location="cpu")
+        state = {k: v.to(torch.bfloat16) if v.is_floating_point() else v for k, v in state.items()}
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        del state
+        print(f"Loaded full_state. missing={len(missing)}, unexpected={len(unexpected)}")
     model = model.to(torch.bfloat16).to(device).eval()
-    print(f"Loaded full_state. missing={len(missing)}, unexpected={len(unexpected)}")
 
     # Left-padding is required for batched generation so all sequences are right-aligned
     tokenizer.padding_side = "left"
