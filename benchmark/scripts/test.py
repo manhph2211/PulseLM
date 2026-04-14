@@ -118,7 +118,7 @@ def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei", catego
     category and answer_map. Rows whose answer is not in answer_map are skipped.
     """
     from datasets import load_dataset, get_dataset_config_names
-    from dataset import CATEGORY_SCHEMA, _make_messages, _parse_qa, _resample_ppg
+    from dataset import CATEGORY_SCHEMA, ANSWER_REMAP, _make_messages, _parse_qa, _resample_ppg
 
     if dataset_names is None:
         dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
@@ -138,6 +138,7 @@ def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei", catego
                 if not isinstance(payload, dict):
                     continue
                 ans = payload.get("answer", "")
+                ans = ANSWER_REMAP.get(category, {}).get(ans, ans)
                 question = payload.get("question")
 
                 # Apply category remap if configured for this source category

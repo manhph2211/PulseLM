@@ -30,10 +30,10 @@
     "answers": ["mild_5<=ahi<15", "moderate_15<=ahi<30", "normal_ahi<5", "severe_ahi>=30"]
   },
   "spo2_category": {
-    "answers": ["mild_hypoxemia", "moderate_hypoxemia", "normal", "severe_hypoxemia"]
+    "answers": ["normal", "abnormal"]
   },
   "sqi_category": {
-    "answers": ["good_quality", "noisy_or_distorted", "symmetric_unusual"]
+    "answers": ["good_quality", "noisy"]
   },
   "stress_label": {
     "answers": ["amusement", "baseline", "meditation", "stress"]

@@ -27,6 +27,7 @@ assets/logs
 runs
 .env
 logs/
+assets/figs/    
 trash/
 # Byte-compiled / optimized / DLL files
 __pycache__/

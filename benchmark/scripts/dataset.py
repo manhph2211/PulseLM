@@ -32,6 +32,22 @@ def load_category_schema() -> Dict[str, Dict[str, List[str]]]:
 # Loaded once at import time — add new categories to category_schema.json, not here
 CATEGORY_SCHEMA: Dict[str, Dict[str, List[str]]] = load_category_schema()
 
+# Maps old HF dataset answer strings to merged/simplified labels.
+# Add entries here whenever you collapse classes — no other file needs changing.
+ANSWER_REMAP: Dict[str, Dict[str, str]] = {
+    "sqi_category": {
+        "good_quality": "good_quality",
+        "noisy_or_distorted": "noisy",
+        "symmetric_unusual": "noisy",
+    },
+    "spo2_category": {
+        "normal": "normal",
+        "mild_hypoxemia": "abnormal",
+        "moderate_hypoxemia": "abnormal",
+        "severe_hypoxemia": "abnormal",
+    },
+}
+
 
 def _make_messages(
     category: str,
@@ -106,6 +122,7 @@ class HFPulseLMDataset(Dataset):
                     if not isinstance(payload, dict):
                         continue
                     ans = payload.get("answer", "")
+                    ans = ANSWER_REMAP.get(category, {}).get(ans, ans)
                     if ans not in CATEGORY_SCHEMA[category]["answers"]:
                         continue
                     question = payload.get("question")
