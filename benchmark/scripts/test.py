@@ -109,15 +109,24 @@ class SignalsCache:
         return self._cache[p]
 
 
-def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei"):
+def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei", category_remap=None):
+    """Load items from HuggingFace dataset.
+
+    category_remap: optional dict for cross-category evaluation, e.g.:
+        {"arrhythmia_category": {"target": "af_label", "answer_map": {"af": "af", "sinus_rhythm": "non_af"}}}
+    When a source category appears in category_remap, rows are remapped to the target
+    category and answer_map. Rows whose answer is not in answer_map are skipped.
+    """
     from datasets import load_dataset, get_dataset_config_names
     from dataset import CATEGORY_SCHEMA, _make_messages, _parse_qa, _resample_ppg
 
     if dataset_names is None:
         dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
+    category_remap = category_remap or {}
 
     items = []
     skipped = 0
+    remapped = 0
     for name in dataset_names:
         ds = load_dataset("Manhph2211/PulseLM", name, split=split)
         for row_idx, row in enumerate(ds):
@@ -126,14 +135,43 @@ def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei"):
             if not isinstance(qa, dict):
                 continue
             for category, payload in qa.items():
-                if category not in CATEGORY_SCHEMA:
-                    continue
                 if not isinstance(payload, dict):
                     continue
                 ans = payload.get("answer", "")
+                question = payload.get("question")
+
+                # Apply category remap if configured for this source category
+                if category in category_remap:
+                    remap = category_remap[category]
+                    target_cat = remap["target"]
+                    answer_map = remap["answer_map"]
+                    if ans not in answer_map:
+                        continue  # this answer is not in the binary subset — skip
+                    mapped_ans = answer_map[ans]
+                    if target_cat not in CATEGORY_SCHEMA:
+                        continue
+                    if mapped_ans not in CATEGORY_SCHEMA[target_cat]["answers"]:
+                        continue
+                    if not question:
+                        skipped += 1
+                        continue
+                    messages = _make_messages(target_cat, mapped_ans, question)
+                    items.append({
+                        "id": f"{name}__row{row_idx}__{category}__as__{target_cat}",
+                        "meta": {"dataset": name, "question_category": target_cat,
+                                 "source_category": category, "split": split},
+                        "label": {"answer": mapped_ans},
+                        "messages": messages,
+                        "_signal_array": sig,
+                    })
+                    remapped += 1
+                    continue
+
+                # Normal path
+                if category not in CATEGORY_SCHEMA:
+                    continue
                 if ans not in CATEGORY_SCHEMA[category]["answers"]:
                     continue
-                question = payload.get("question")
                 if not question:
                     skipped += 1
                     continue
@@ -147,6 +185,8 @@ def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei"):
                 })
     if skipped:
         print(f"[load_hf_items] Skipped {skipped} examples missing 'question' field in qa payload.")
+    if remapped:
+        print(f"[load_hf_items] Remapped {remapped} examples via category_remap.")
     return items
 
 
@@ -171,6 +211,11 @@ def main():
     ap.add_argument("--hf_token", type=str, default=None)
     ap.add_argument("--seed", type=int, default=256)
     ap.add_argument("--max_samples", type=int, default=0)
+    ap.add_argument("--category_remap", type=str, default=None,
+                    help="JSON string for cross-category eval, e.g. "
+                         "'{\"arrhythmia_category\": {\"target\": \"af_label\", "
+                         "\"answer_map\": {\"af\": \"af\", \"sinus_rhythm\": \"non_af\"}}}'")
+
     ap.add_argument("--max_new_tokens", type=int, default=32)
     ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--do_sample", action="store_true")
@@ -212,9 +257,18 @@ def main():
 
     jsonl_path = None
     sf = None
+    category_remap = None
+    if args.category_remap:
+        try:
+            category_remap = json.loads(args.category_remap)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"--category_remap is not valid JSON: {e}")
+
     if args.use_hf_dataset:
         hf_test_names = [n.strip() for n in args.hf_test_names.split(",") if n.strip()] or None
-        items = load_hf_items(hf_test_names, args.hf_split, args.seed, ppg_encoder_type=args.ppg_encoder_type)
+        items = load_hf_items(hf_test_names, args.hf_split, args.seed,
+                              ppg_encoder_type=args.ppg_encoder_type,
+                              category_remap=category_remap)
         num_loaded_raw = len(items)
         print(f"Loaded {num_loaded_raw} items from HF (split={args.hf_split})")
     else:
