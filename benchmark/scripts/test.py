@@ -109,9 +109,9 @@ class SignalsCache:
         return self._cache[p]
 
 
-def load_hf_items(dataset_names, split, seed):
+def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei"):
     from datasets import load_dataset, get_dataset_config_names
-    from dataset import CATEGORY_SCHEMA, _make_messages, _parse_qa
+    from dataset import CATEGORY_SCHEMA, _make_messages, _parse_qa, _resample_ppg
 
     if dataset_names is None:
         dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
@@ -121,7 +121,7 @@ def load_hf_items(dataset_names, split, seed):
     for name in dataset_names:
         ds = load_dataset("Manhph2211/PulseLM", name, split=split)
         for row_idx, row in enumerate(ds):
-            sig = np.array(row["signal"], dtype=np.float32)
+            sig = _resample_ppg(np.array(row["signal"], dtype=np.float32), ppg_encoder_type)
             qa = _parse_qa(row["qa"])
             if not isinstance(qa, dict):
                 continue
@@ -214,7 +214,7 @@ def main():
     sf = None
     if args.use_hf_dataset:
         hf_test_names = [n.strip() for n in args.hf_test_names.split(",") if n.strip()] or None
-        items = load_hf_items(hf_test_names, args.hf_split, args.seed)
+        items = load_hf_items(hf_test_names, args.hf_split, args.seed, ppg_encoder_type=args.ppg_encoder_type)
         num_loaded_raw = len(items)
         print(f"Loaded {num_loaded_raw} items from HF (split={args.hf_split})")
     else:

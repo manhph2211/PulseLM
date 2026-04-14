@@ -8,6 +8,19 @@ import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset, get_dataset_config_names
 
+_ENCODER_HZ = {"papagei": 125, "pulseppg": 50}
+_DATASET_HZ = 125  
+
+
+def _resample_ppg(sig: np.ndarray, encoder_type: str) -> np.ndarray:
+    """Resample signal to the encoder's expected sample rate if needed."""
+    target_hz = _ENCODER_HZ.get(encoder_type, _DATASET_HZ)
+    if target_hz == _DATASET_HZ:
+        return sig
+    from scipy.signal import resample
+    target_len = int(round(len(sig) * target_hz / _DATASET_HZ))
+    return resample(sig, target_len).astype(np.float32)
+
 _SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "category_schema.json")
 
 
@@ -66,11 +79,13 @@ class HFPulseLMDataset(Dataset):
         ignore_index: int = -100,
         use_chat_template: bool = True,
         seed: int = 42,
+        ppg_encoder_type: str = "papagei",
     ):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.ignore_index = ignore_index
         self.use_chat_template = use_chat_template
+        self.ppg_encoder_type = ppg_encoder_type
 
         if dataset_names is None:
             dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
@@ -81,7 +96,7 @@ class HFPulseLMDataset(Dataset):
         for name in dataset_names:
             ds = load_dataset("Manhph2211/PulseLM", name, split=split)
             for row in ds:
-                sig = np.array(row["signal"], dtype=np.float32)
+                sig = _resample_ppg(np.array(row["signal"], dtype=np.float32), self.ppg_encoder_type)
                 qa = _parse_qa(row["qa"])
                 if not isinstance(qa, dict):
                     continue

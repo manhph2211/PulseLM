@@ -256,10 +256,12 @@ def main():
         train_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="train", dataset_names=train_names,
             max_length=args.max_length, use_chat_template=True, seed=args.seed,
+            ppg_encoder_type=args.ppg_encoder_type,
         )
         dev_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="validation", dataset_names=train_names,
             max_length=args.max_length, use_chat_template=True, seed=args.seed,
+            ppg_encoder_type=args.ppg_encoder_type,
         )
         collator = HFPPGDataCollator(tokenizer=tokenizer, ppg_unsqueeze_channel=args.ppg_unsqueeze_channel)
     else:
