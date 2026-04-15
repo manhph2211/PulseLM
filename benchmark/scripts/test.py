@@ -222,6 +222,8 @@ def main():
     ap.add_argument("--do_sample", action="store_true")
     ap.add_argument("--temperature", type=float, default=None)
     ap.add_argument("--ppg_unsqueeze_channel", action="store_true")
+    ap.add_argument("--zero_ppg", action="store_true", default=False,
+                    help="Blind baseline: replace PPG embeddings with zeros (LLM text-only).")
     ap.add_argument("--print_every", type=int, default=200)
     ap.add_argument("--max_print_failures", type=int, default=30)
     ap.add_argument("--ppg_feat_dim", type=int, default=512)
@@ -423,6 +425,8 @@ def main():
 
         # --- Batch PPG ---
         ppg_batch = torch.stack([ppg for _, ppg, *_ in ready]).to(device)
+        if args.zero_ppg:
+            ppg_batch = torch.zeros_like(ppg_batch)   # blind baseline: no signal info
 
         # --- Generate for entire batch ---
         with torch.no_grad():

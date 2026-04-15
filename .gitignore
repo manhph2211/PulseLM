@@ -13,6 +13,8 @@ processed/
 *.mat
 *.zip
 *.csv
+*.pdf
+benchmark/baselines/
 figures
 utils/*.py
 utils/*.ipynb
