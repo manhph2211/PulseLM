@@ -28,7 +28,7 @@
 </div>
 
 
-<img alt="image" src="https://github.com/user-attachments/assets/35a7926e-fe85-4d61-93ce-1f2ada3c8d72" />
+<img alt="image" src="https://github.com/user-attachments/assets/98ffdecb-060e-468c-8ce8-f73a6dfdac18" />
 
 
 ## :rocket: Introduction
