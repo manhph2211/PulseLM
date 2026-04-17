@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -124,9 +125,11 @@ def main() -> None:
             overall_pairs.append((gt_ans, pred_ans))
             per_question_pairs[question_category].append((gt_ans, pred_ans))
 
-        if raw_text and gt_ans:
-            overall_gen.append((raw_text, gt_ans))
-            per_question_gen[question_category].append((raw_text, gt_ans))
+        # Strip <answer> tags so ROUGE-L/BLEU-1 compare clean text vs clean text
+        clean_pred = re.sub(r"</?answer>", "", raw_text, flags=re.IGNORECASE).strip()
+        if clean_pred and gt_ans:
+            overall_gen.append((clean_pred, gt_ans))
+            per_question_gen[question_category].append((clean_pred, gt_ans))
 
     metrics = {
         "predictions_jsonl": args.predictions,
