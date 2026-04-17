@@ -223,6 +223,25 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
 
+    # Derive wandb run name from the checkpoint folder name
+    run_name = os.path.basename(os.path.normpath(args.out_dir))
+    os.environ["WANDB_RUN_NAME"] = run_name
+
+    local_rank = int(os.environ.get("LOCAL_RANK", "-1"))
+    if local_rank in (-1, 0):
+        train_datasets = args.hf_train_names if args.hf_train_names else "all"
+        print("=" * 70)
+        print(f"  Run name     : {run_name}")
+        print(f"  LLM          : {args.llm_name}")
+        print(f"  PPG encoder  : {args.ppg_encoder_type}  |  ckpt: {args.ppg_encoder_ckpt}")
+        print(f"  Encoder      : {'FROZEN' if args.freeze_ppg_encoder else 'TRAINABLE'}")
+        print(f"  LoRA         : r={args.lora_r}, alpha={args.lora_alpha}, dropout={args.lora_dropout}")
+        print(f"  Train data   : {train_datasets}")
+        print(f"  Batch size   : {args.per_device_train_batch_size} x {args.gradient_accumulation_steps} grad_accum  |  epochs={args.num_train_epochs}")
+        print(f"  LR           : LLM/LoRA={args.learning_rate}, ppg_proj={args.ppg_proj_lr}  |  scheduler={args.lr_scheduler_type}")
+        print(f"  Output dir   : {args.out_dir}")
+        print("=" * 70)
+
     hf_token = os.environ.get("HF_TOKEN", None)
     tokenizer = AutoTokenizer.from_pretrained(args.llm_name, token=hf_token, use_fast=True)
     if tokenizer.pad_token is None:
@@ -244,7 +263,6 @@ def main():
         token=hf_token,
     )
 
-    local_rank = int(os.environ.get("LOCAL_RANK", "-1"))
     if local_rank in (-1, 0):
         for n, p in model.named_parameters():
             nl = n.lower()
@@ -256,12 +274,12 @@ def main():
         train_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="train", dataset_names=train_names,
             max_length=args.max_length, use_chat_template=True, seed=args.seed,
-            ppg_encoder_type=args.ppg_encoder_type,
+            ppg_encoder_type=args.ppg_encoder_type, augment=True,
         )
         dev_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="validation", dataset_names=train_names,
             max_length=args.max_length, use_chat_template=True, seed=args.seed,
-            ppg_encoder_type=args.ppg_encoder_type,
+            ppg_encoder_type=args.ppg_encoder_type, augment=False,
         )
         collator = HFPPGDataCollator(tokenizer=tokenizer, ppg_unsqueeze_channel=args.ppg_unsqueeze_channel)
     else:
@@ -280,6 +298,7 @@ def main():
 
     train_args = TrainingArguments(
         output_dir=args.out_dir,
+        run_name=run_name,
         seed=args.seed,
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
@@ -293,6 +312,7 @@ def main():
         fp16=args.fp16,
         optim="adamw_torch",
         max_grad_norm=1.0,
+        label_smoothing_factor=0.1,
         report_to="wandb",
         remove_unused_columns=False,
         eval_strategy="steps",
@@ -308,6 +328,29 @@ def main():
     )
 
     class PPGTrainer(Trainer):
+        def get_train_dataloader(self):
+            ds = self.train_dataset
+            if hasattr(ds, "get_sample_weights"):
+                from torch.utils.data import WeightedRandomSampler, DataLoader
+                weights = ds.get_sample_weights()
+                sampler = WeightedRandomSampler(
+                    weights, num_samples=len(weights), replacement=True
+                )
+                if int(os.environ.get("LOCAL_RANK", "-1")) in (-1, 0):
+                    n_normal = sum(1 for _, a in ds._labels if a in {"normal", "good_quality"})
+                    print(f"[WeightedSampler] {len(weights)} examples, "
+                          f"{n_normal} normal ({100*n_normal/len(weights):.1f}%), "
+                          f"{len(weights)-n_normal} minority")
+                return DataLoader(
+                    ds,
+                    batch_size=self.args.per_device_train_batch_size,
+                    sampler=sampler,
+                    collate_fn=self.data_collator,
+                    num_workers=4,
+                    pin_memory=True,
+                )
+            return super().get_train_dataloader()
+
         def create_optimizer(self):
             if self.optimizer is not None:
                 return self.optimizer

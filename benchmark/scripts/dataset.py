@@ -1,12 +1,68 @@
 import os
 import json
+import random
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset, get_dataset_config_names
+
+# Per-category "normal/baseline" answers — everything else is a minority class
+# eligible for augmentation. None means no concept of normal (skip augmentation).
+_CATEGORY_NORMAL: Dict[str, Optional[Set[str]]] = {
+    "activity_label":          None,               # pure activity recognition, no pathological axis
+    "af_label":                {"non_af"},
+    "arrhythmia_category":     {"sinus_rhythm"},
+    "blood_pressure_category": {"normal"},
+    "heart_rate_category":     {"normal"},
+    "hrv_pnn50_category":      {"normal"},
+    "hrv_rmssd_category":      {"normal"},
+    "hrv_sdnn_category":       {"normal"},
+    "rr_category":             {"normal"},
+    "sdb_label":               {"normal_ahi<5"},
+    "spo2_category":           {"normal"},
+    "sqi_category":            {"good_quality"},
+    "stress_label":            {"baseline"},
+}
+
+
+def _is_minority(category: str, answer: str) -> bool:
+    """Return True if this (category, answer) should be augmented."""
+    normal = _CATEGORY_NORMAL.get(category)
+    if normal is None:
+        return False          # activity_label — skip augmentation entirely
+    return answer not in normal
+
+
+# ---------------------------------------------------------------------------
+# PPG augmentation — label-preserving only (no time warping)
+# ---------------------------------------------------------------------------
+
+def _aug_gaussian_noise(sig: np.ndarray) -> np.ndarray:
+    std = np.random.uniform(0.005, 0.02)
+    return sig + np.random.normal(0.0, std, size=sig.shape).astype(np.float32)
+
+
+def _aug_amplitude_scale(sig: np.ndarray) -> np.ndarray:
+    scale = np.random.uniform(0.90, 1.10)
+    return (sig * scale).astype(np.float32)
+
+
+def _aug_baseline_wander(sig: np.ndarray, fs: float = 125.0) -> np.ndarray:
+    freq = np.random.uniform(0.05, 0.4)
+    amplitude = np.random.uniform(0.005, 0.03)
+    t = np.arange(len(sig), dtype=np.float32) / fs
+    return (sig + amplitude * np.sin(2 * np.pi * freq * t)).astype(np.float32)
+
+
+def augment_ppg(sig: np.ndarray) -> np.ndarray:
+    """Apply 1–2 random label-preserving augmentations."""
+    ops = [_aug_gaussian_noise, _aug_amplitude_scale, _aug_baseline_wander]
+    for op in random.sample(ops, k=random.randint(1, 2)):
+        sig = op(sig)
+    return sig
 
 _ENCODER_HZ = {"papagei": 125, "pulseppg": 50}
 _DATASET_HZ = 125  
@@ -96,17 +152,20 @@ class HFPulseLMDataset(Dataset):
         use_chat_template: bool = True,
         seed: int = 42,
         ppg_encoder_type: str = "papagei",
+        augment: bool = False,
     ):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.ignore_index = ignore_index
         self.use_chat_template = use_chat_template
         self.ppg_encoder_type = ppg_encoder_type
+        self.augment = augment
 
         if dataset_names is None:
             dataset_names = get_dataset_config_names("Manhph2211/PulseLM")
 
         self._examples: List[Tuple[np.ndarray, List[Dict[str, str]]]] = []
+        self._labels: List[Tuple[str, str]] = []  # (category, answer) per example
         skipped = 0
 
         for name in dataset_names:
@@ -131,15 +190,34 @@ class HFPulseLMDataset(Dataset):
                         continue
                     messages = _make_messages(category, ans, question)
                     self._examples.append((sig, messages))
+                    self._labels.append((category, ans))
 
         if skipped:
             print(f"[HFPulseLMDataset] Skipped {skipped} examples missing 'question' field in qa payload.")
+
+    def get_sample_weights(self) -> torch.Tensor:
+        """Return per-example weights for WeightedRandomSampler (inverse class frequency).
+
+        Weight is computed per (category, answer) bucket so that every answer
+        option within every category gets equal representation.
+        """
+        from collections import Counter
+        counts = Counter(self._labels)
+        weights = [1.0 / counts[lbl] for lbl in self._labels]
+        t = torch.tensor(weights, dtype=torch.float64)
+        # normalize so the mean weight == 1 (keeps effective batch size stable)
+        t = t / t.mean()
+        return t.float()
 
     def __len__(self) -> int:
         return len(self._examples)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sig, msgs = self._examples[idx]
+        if self.augment:
+            category, ans = self._labels[idx]
+            if _is_minority(category, ans):
+                sig = augment_ppg(sig)
         ppg = torch.tensor(sig, dtype=torch.float32)
 
         assistant_pos = None

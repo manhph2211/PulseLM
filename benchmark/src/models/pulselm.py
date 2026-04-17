@@ -66,6 +66,11 @@ class MultimodalPPGLLM(nn.Module):
         for p in self.ppg_proj.parameters():
             p.requires_grad = True
 
+    @property
+    def config(self):
+        # HF Trainer expects model.config to exist
+        return self.llm.config
+
     def forward(
         self,
         input_ids: torch.Tensor,
