@@ -169,6 +169,8 @@ def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei", catego
                     continue
 
                 # Normal path
+                if category == "activity_label":
+                    continue
                 if category not in CATEGORY_SCHEMA:
                     continue
                 if ans not in CATEGORY_SCHEMA[category]["answers"]:

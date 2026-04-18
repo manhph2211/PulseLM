@@ -176,6 +176,8 @@ class HFPulseLMDataset(Dataset):
                 if not isinstance(qa, dict):
                     continue
                 for category, payload in qa.items():
+                    if category == "activity_label":
+                        continue
                     if category not in CATEGORY_SCHEMA:
                         continue
                     if not isinstance(payload, dict):

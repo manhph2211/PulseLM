@@ -274,7 +274,7 @@ def main():
         train_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="train", dataset_names=train_names,
             max_length=args.max_length, use_chat_template=True, seed=args.seed,
-            ppg_encoder_type=args.ppg_encoder_type, augment=True,
+            ppg_encoder_type=args.ppg_encoder_type, augment=False,
         )
         dev_ds = HFPulseLMDataset(
             tokenizer=tokenizer, split="validation", dataset_names=train_names,
@@ -312,7 +312,6 @@ def main():
         fp16=args.fp16,
         optim="adamw_torch",
         max_grad_norm=1.0,
-        label_smoothing_factor=0.1,
         report_to="wandb",
         remove_unused_columns=False,
         eval_strategy="steps",
@@ -328,29 +327,6 @@ def main():
     )
 
     class PPGTrainer(Trainer):
-        def get_train_dataloader(self):
-            ds = self.train_dataset
-            if hasattr(ds, "get_sample_weights"):
-                from torch.utils.data import WeightedRandomSampler, DataLoader
-                weights = ds.get_sample_weights()
-                sampler = WeightedRandomSampler(
-                    weights, num_samples=len(weights), replacement=True
-                )
-                if int(os.environ.get("LOCAL_RANK", "-1")) in (-1, 0):
-                    n_normal = sum(1 for _, a in ds._labels if a in {"normal", "good_quality"})
-                    print(f"[WeightedSampler] {len(weights)} examples, "
-                          f"{n_normal} normal ({100*n_normal/len(weights):.1f}%), "
-                          f"{len(weights)-n_normal} minority")
-                return DataLoader(
-                    ds,
-                    batch_size=self.args.per_device_train_batch_size,
-                    sampler=sampler,
-                    collate_fn=self.data_collator,
-                    num_workers=4,
-                    pin_memory=True,
-                )
-            return super().get_train_dataloader()
-
         def create_optimizer(self):
             if self.optimizer is not None:
                 return self.optimizer
