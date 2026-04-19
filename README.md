@@ -48,7 +48,7 @@ This dataset enables research and applications in:
 
 We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible. PulseLM is a research project that builds upon these valuable resources, and we greatly appreciate the efforts of the original dataset creators in collecting and openly publishing the data with the community. Users of this repo are also required to comply with their usage policy.
 
-<img alt="image" src="https://github.com/user-attachments/assets/f3c3ca8d-39a7-4a82-97c6-1cb522128c7b" />
+<img alt="image" src="https://github.com/user-attachments/assets/74d42b52-d2b6-4bc6-95f3-e8372f92ce66" />
 
 
 
