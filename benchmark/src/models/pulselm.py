@@ -27,7 +27,7 @@ class MultimodalPPGLLM(nn.Module):
         token: Optional[str] = None,
     ):
         super().__init__()
-        self.llm = AutoModelForCausalLM.from_pretrained(llm_name, cache_dir=cache_dir, token=token)
+        self.llm = AutoModelForCausalLM.from_pretrained(llm_name, cache_dir=cache_dir, token=token, trust_remote_code=True)
         self.llm_hidden = self.llm.config.hidden_size
         self.ppg_encoder = ppg_encoder
 

@@ -298,7 +298,7 @@ def main():
     if args.max_samples and args.max_samples > 0:
         items = items[:args.max_samples]
 
-    tokenizer = AutoTokenizer.from_pretrained(args.llm_name, cache_dir=args.cache_dir, token=hf_token, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(args.llm_name, cache_dir=args.cache_dir, token=hf_token, use_fast=True, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 

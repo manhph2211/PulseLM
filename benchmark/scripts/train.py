@@ -243,7 +243,7 @@ def main():
         print("=" * 70)
 
     hf_token = os.environ.get("HF_TOKEN", None)
-    tokenizer = AutoTokenizer.from_pretrained(args.llm_name, token=hf_token, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(args.llm_name, token=hf_token, use_fast=True, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
