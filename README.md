@@ -28,7 +28,7 @@
 </div>
 
 
-<img alt="image" src="https://github.com/user-attachments/assets/98ffdecb-060e-468c-8ce8-f73a6dfdac18" />
+<img alt="image" src="https://github.com/user-attachments/assets/46a8cd34-1b1f-44f5-babf-6d375c09015d" />
 
 
 ## :rocket: Introduction
@@ -48,7 +48,7 @@ This dataset enables research and applications in:
 
 We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible. PulseLM is a research project that builds upon these valuable resources, and we greatly appreciate the efforts of the original dataset creators in collecting and openly publishing the data with the community. Users of this repo are also required to comply with their usage policy.
 
-<img alt="image" src="https://github.com/user-attachments/assets/70c338da-84b5-452f-aa7e-95a7b30a8010" />
+<img alt="image" src="https://github.com/user-attachments/assets/f3c3ca8d-39a7-4a82-97c6-1cb522128c7b" />
 
 
 
