@@ -8,7 +8,7 @@
 <a href="https://github.com/manhph2211/PulseLM/"><img src="https://img.shields.io/badge/Website WebPage-blue?style=for-the-badge"></a>
 <a href="https://arxiv.org/pdf/2603.03331"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a>
 <a href="https://huggingface.co/datasets/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Dataset-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
-<a href=""><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
+<a href="https://huggingface.co/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
 </div>
 
 <div align="center">
