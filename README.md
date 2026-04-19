@@ -300,7 +300,7 @@ The benchmark evaluates multimodal PPG–language models on 12 clinical QA categ
 
 #### Training
 
-```bash
+```python
 python benchmark/scripts/train.py \
     --use_hf_dataset \
     # --hf_train_names vitaldb,afppgecg \ # if train on specfic datasets 
@@ -323,7 +323,7 @@ python benchmark/scripts/train.py \
 
 #### Evaluation
 
-```bash
+```python
 python benchmark/scripts/test.py \
     --use_hf_dataset \
     # --hf_test_names bcg,ppgbp,sensors,uci \ # if test on specfic datasets
