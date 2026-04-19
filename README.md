@@ -135,7 +135,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 9. Based on the PPG, what is the BP category?
 10. What blood pressure class does this sample belong to?
 
-**Answers**: `good_quality`, `noisy_or_distorted`, `symmetric_unusual`
+**Answers**: `good`, `noisy`
 
 1. Is this PPG signal clean or motion distorted?
 2. How would you categorize the signal quality here?
@@ -243,7 +243,7 @@ PPG signal recorded from wrist position. Heart rate is 85 bpm (normal). Mean RR 
 10. Assess the arrhythmia classification from this recording.
 
 
-**Answers**: `normal`, `mild_hypoxemia`, `moderate_hypoxemia`, `severe_hypoxemia`
+**Answers**: `normal`, `abnormal`
 
 1. What is the SpO2 category for this segment?
 2. Classify the blood oxygen saturation.
