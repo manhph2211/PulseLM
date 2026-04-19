@@ -279,6 +279,8 @@ conda activate ppg
 pip install -r requirements.txt
 ```
 
+### Dataset
+
 ```python
 from datasets import load_dataset, get_dataset_config_names, concatenate_datasets
 
@@ -290,6 +292,53 @@ train_splits = [
 ]
 combined = concatenate_datasets(train_splits)
 print(f"Total samples: {len(combined):,}")
+```
+
+### Benchmark
+
+The benchmark evaluates multimodal PPG–language models on 12 clinical QA categories (AF detection, arrhythmia, blood pressure, heart rate, HRV-SDNN/RMSSD/pNN50, respiratory rate, sleep apnea, SpO2, signal quality, stress) across 16 datasets. All results are reported on the test set only.
+
+#### Training
+
+```bash
+python benchmark/scripts/train.py \
+    --use_hf_dataset \
+    # --hf_train_names vitaldb,afppgecg \ # if train on specfic datasets 
+    --out_dir assets/outputs/pulselm_llama31-8b_papagei_train-all \
+    --llm_name meta-llama/Llama-3.1-8B-Instruct \
+    --ppg_encoder_type papagei \
+    --ppg_encoder_ckpt benchmark/checkpoints/papagei/papagei_s.pt \
+    --ppg_feat_dim 512 \
+    --per_device_train_batch_size 16 \
+    --gradient_accumulation_steps 4 \
+    --learning_rate 1e-4 \
+    --ppg_proj_lr 2e-4 \
+    --num_train_epochs 2 \
+    --lora_r 8 \
+    --lora_alpha 16 \
+    --lora_dropout 0.1 \
+    --freeze_ppg_encoder \
+    --bf16
+```
+
+#### Evaluation
+
+```bash
+python benchmark/scripts/test.py \
+    --use_hf_dataset \
+    # --hf_test_names bcg,ppgbp,sensors,uci \ # if test on specfic datasets
+    --hf_split test \
+    --out_dir assets/outputs/eval_results \
+    --full_state_path assets/outputs/pulselm_llama31-8b_papagei_train-all/multimodal_full_state.pt \
+    --llm_name meta-llama/Llama-3.1-8B-Instruct \
+    --ppg_encoder_type papagei \
+    --ppg_encoder_ckpt benchmark/checkpoints/papagei/papagei_s.pt \
+    --lora_r 8 --lora_alpha 16 --lora_dropout 0.1 \
+    --max_new_tokens 32 --batch_size 16
+
+python benchmark/scripts/evaluate.py \
+    --predictions assets/outputs/eval_results/eval_predictions.jsonl \
+    --out_dir assets/outputs/eval_results/metrics
 ```
 
 ## :page_facing_up: Citation
