@@ -235,6 +235,16 @@ class HFPulseLMDataset(Dataset):
 
         use_chat = self.use_chat_template and hasattr(self.tokenizer, "apply_chat_template")
         if use_chat:
+            # Mistral-based models don't support system role — merge into first user message
+            tmpl = getattr(self.tokenizer, "chat_template", "") or ""
+            if "system" not in tmpl and prompt_msgs and prompt_msgs[0]["role"] == "system":
+                sys_content = prompt_msgs[0]["content"]
+                rest = prompt_msgs[1:]
+                if rest and rest[0]["role"] == "user":
+                    rest[0] = {"role": "user", "content": sys_content + "\n\n" + rest[0]["content"]}
+                    prompt_msgs = rest
+                else:
+                    prompt_msgs = [{"role": "user", "content": sys_content}] + rest
             prompt_only = self.tokenizer.apply_chat_template(prompt_msgs, tokenize=False, add_generation_prompt=True)
             full_text = self.tokenizer.apply_chat_template(
                 prompt_msgs + [{"role": "assistant", "content": assistant_text}],

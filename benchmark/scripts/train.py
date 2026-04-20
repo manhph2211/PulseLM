@@ -246,6 +246,11 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.llm_name, token=hf_token, use_fast=True, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    if not getattr(tokenizer, "chat_template", None):
+        # Fallback for models (e.g. OpenBioLLM) that are Llama3-based but ship without a chat template
+        from transformers import AutoTokenizer as _AT
+        _ref = _AT.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", token=hf_token, use_fast=True)
+        tokenizer.chat_template = _ref.chat_template
 
     if args.ppg_encoder_type == "pulseppg":
         ppg_encoder = load_pulseppg_from_checkpoint(checkpoint_path=args.ppg_encoder_ckpt, device="cpu")
