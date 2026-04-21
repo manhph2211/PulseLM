@@ -28,7 +28,8 @@ class MultimodalPPGLLM(nn.Module):
     ):
         super().__init__()
         self.llm = AutoModelForCausalLM.from_pretrained(llm_name, cache_dir=cache_dir, token=token, trust_remote_code=True)
-        self.llm_hidden = self.llm.config.hidden_size
+        _cfg = self.llm.config
+        self.llm_hidden = getattr(_cfg, "hidden_size", None) or getattr(getattr(_cfg, "text_config", _cfg), "hidden_size")
         self.ppg_encoder = ppg_encoder
 
         setting = setting.lower()

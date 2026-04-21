@@ -36,6 +36,15 @@ def ensure_dir(p: str) -> None:
 
 def build_prompt(messages: List[Dict[str, Any]], tokenizer) -> str:
     prompt_msgs = [m for m in messages if m.get("role") in ("system", "user")]
+    tmpl = getattr(tokenizer, "chat_template", "") or ""
+    if "system" not in tmpl and prompt_msgs and prompt_msgs[0]["role"] == "system":
+        sys_content = prompt_msgs[0]["content"]
+        rest = prompt_msgs[1:]
+        if rest and rest[0]["role"] == "user":
+            rest[0] = {"role": "user", "content": sys_content + "\n\n" + rest[0]["content"]}
+            prompt_msgs = rest
+        else:
+            prompt_msgs = [{"role": "user", "content": sys_content}] + rest
     return tokenizer.apply_chat_template(prompt_msgs, tokenize=False, add_generation_prompt=True)
 
 
