@@ -356,6 +356,8 @@ def main():
         do_sample=args.do_sample,
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
+        stop_strings=["</answer>"],
+        tokenizer=tokenizer,
     )
     if args.temperature is not None and args.do_sample:
         gen_base_kwargs["temperature"] = args.temperature
