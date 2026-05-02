@@ -20,6 +20,9 @@ utils/*.py
 utils/*.ipynb
 benchmark/checkpoints/papagei/
 benchmark/checkpoints/pulse*/
+benchmark/scripts/*table*
+benchmark/scripts/*aggregate_ci*
+assets/others/
 wandb
 outputs/
 ckpt/

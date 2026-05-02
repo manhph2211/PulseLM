@@ -212,7 +212,7 @@ def main():
 
     args = parser.parse_args()
 
-    from transformers import AutoTokenizer, Trainer, TrainingArguments
+    from transformers import AutoTokenizer, Trainer, TrainingArguments, TrainerCallback
     from models.pulselm import MultimodalPPGLLM
     from utils.utils import set_seed
 
@@ -247,10 +247,22 @@ def main():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     if not getattr(tokenizer, "chat_template", None):
-        # Fallback for models (e.g. OpenBioLLM) that are Llama3-based but ship without a chat template
-        from transformers import AutoTokenizer as _AT
-        _ref = _AT.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", token=hf_token, use_fast=True)
-        tokenizer.chat_template = _ref.chat_template
+        _name_lower = args.llm_name.lower()
+        if "mistral" in _name_lower or "mixtral" in _name_lower:
+            # Mistral-based models use [INST]/[/INST] style; Llama-3 tokens are not in their vocab
+            tokenizer.chat_template = (
+                "{{ bos_token }}"
+                "{% for message in messages %}"
+                "{% if message['role'] == 'user' %}[INST] {{ message['content'] }} [/INST]"
+                "{% elif message['role'] == 'assistant' %}{{ message['content'] }}{{ eos_token }}"
+                "{% endif %}"
+                "{% endfor %}"
+            )
+        else:
+            # Fallback for LLaMA-3-based models (e.g. OpenBioLLM) that ship without a chat template
+            from transformers import AutoTokenizer as _AT
+            _ref = _AT.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", token=hf_token, use_fast=True)
+            tokenizer.chat_template = _ref.chat_template
 
     if args.ppg_encoder_type == "pulseppg":
         ppg_encoder = load_pulseppg_from_checkpoint(checkpoint_path=args.ppg_encoder_ckpt, device="cpu")
@@ -374,12 +386,22 @@ def main():
             loss = outputs.loss
             return (loss, outputs) if return_outputs else loss
 
+    class KeepBestOnlyCallback(TrainerCallback):
+        def on_save(self, args, state, control, **kwargs):
+            import glob, shutil
+            best = state.best_model_checkpoint
+            for ckpt in glob.glob(os.path.join(args.output_dir, "checkpoint-*")):
+                if best is None or os.path.abspath(ckpt) != os.path.abspath(best):
+                    shutil.rmtree(ckpt, ignore_errors=True)
+            return control
+
     trainer = PPGTrainer(
         model=model,
         args=train_args,
         train_dataset=train_ds,
         eval_dataset=dev_ds,
         data_collator=collator,
+        callbacks=[KeepBestOnlyCallback()],
     )
 
     trainer.train()
