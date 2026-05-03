@@ -6,7 +6,7 @@
 
 <div align="center"> 
 <a href="https://github.com/manhph2211/PulseLM/"><img src="https://img.shields.io/badge/Website WebPage-blue?style=for-the-badge"></a>
-<a href="https://arxiv.org/pdf/2603.03331"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a>
+<!-- <a href="https://arxiv.org/pdf/2603.03331"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a> -->
 <a href="https://huggingface.co/datasets/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Dataset-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
 <a href="https://huggingface.co/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
 </div>
@@ -339,20 +339,4 @@ python benchmark/scripts/test.py \
 python benchmark/scripts/evaluate.py \
     --predictions assets/outputs/eval_results/eval_predictions.jsonl \
     --out_dir assets/outputs/eval_results/metrics
-```
-
-## :page_facing_up: Citation
-
-If you find this work useful :smile:, please consider citing our paper:
-
-```bibtex
-@misc{pham2026pulselmfoundationdatasetbenchmark,
-      title={PulseLM: A Foundation Dataset and Benchmark for PPG-Text Learning}, 
-      author={Hung Manh Pham and Jinyang Wu and Xiao Ma and Yiming Zhang and Yixin Xu and Aaqib Saeed and Bin Zhu and Zhou Pan and Dong Ma},
-      year={2026},
-      eprint={2603.03331},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2603.03331}, 
-}
 ```
