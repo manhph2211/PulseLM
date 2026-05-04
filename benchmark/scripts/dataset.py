@@ -9,10 +9,9 @@ import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset, get_dataset_config_names
 
-# Per-category "normal/baseline" answers — everything else is a minority class
-# eligible for augmentation. None means no concept of normal (skip augmentation).
+
 _CATEGORY_NORMAL: Dict[str, Optional[Set[str]]] = {
-    "activity_label":          None,               # pure activity recognition, no pathological axis
+    "activity_label":          None,             
     "af_label":                {"non_af"},
     "arrhythmia_category":     {"sinus_rhythm"},
     "blood_pressure_category": {"normal"},
@@ -32,13 +31,9 @@ def _is_minority(category: str, answer: str) -> bool:
     """Return True if this (category, answer) should be augmented."""
     normal = _CATEGORY_NORMAL.get(category)
     if normal is None:
-        return False          # activity_label — skip augmentation entirely
+        return False         
     return answer not in normal
 
-
-# ---------------------------------------------------------------------------
-# PPG augmentation — label-preserving only (no time warping)
-# ---------------------------------------------------------------------------
 
 def _aug_gaussian_noise(sig: np.ndarray) -> np.ndarray:
     std = np.random.uniform(0.005, 0.02)
@@ -85,11 +80,31 @@ def load_category_schema() -> Dict[str, Dict[str, List[str]]]:
         return json.load(f)
 
 
-# Loaded once at import time — add new categories to category_schema.json, not here
 CATEGORY_SCHEMA: Dict[str, Dict[str, List[str]]] = load_category_schema()
 
-# Maps old HF dataset answer strings to merged/simplified labels.
-# Add entries here whenever you collapse classes — no other file needs changing.
+DATASET_CATEGORIES: Dict[str, set] = {
+    "vitaldb":      {"heart_rate_category", "blood_pressure_category",
+                     "hrv_sdnn_category", "hrv_rmssd_category", "hrv_pnn50_category"},
+    "uci":          {"heart_rate_category", "blood_pressure_category", "sqi_category"},
+    "bcg":          {"heart_rate_category", "blood_pressure_category", "sqi_category"},
+    "ppgbp":        {"heart_rate_category", "blood_pressure_category"},
+    "sdb":          {"sdb_label"},
+    "sensors":      {"heart_rate_category", "blood_pressure_category", "sqi_category"},
+    "uqvitalsigns": {"heart_rate_category", "blood_pressure_category",
+                     "spo2_category", "rr_category", "sqi_category"},
+    "ppgarrhythmia":{"arrhythmia_category"},
+    "mimicperform": {"af_label"},
+    "bidmc":        {"spo2_category", "rr_category"},
+    "earset":       {"heart_rate_category"},
+    "utsappg":      {"heart_rate_category", "hrv_sdnn_category",
+                     "hrv_rmssd_category", "hrv_pnn50_category"},
+    "wesad":        {"stress_label"},
+    "dalia":        {"heart_rate_category"},
+    "wildppg":      {"heart_rate_category", "hrv_sdnn_category",
+                     "hrv_rmssd_category", "hrv_pnn50_category"},
+    "afppgecg":     {"af_label"},
+}
+
 ANSWER_REMAP: Dict[str, Dict[str, str]] = {
     "sqi_category": {
         "good_quality": "good_quality",

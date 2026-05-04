@@ -212,6 +212,8 @@ def main():
     ap.add_argument("--jsonl", type=str, default=None)
     ap.add_argument("--split_filter", type=str, default="test")
     ap.add_argument("--question_category_filter", type=str, default="")
+    ap.add_argument("--hf_train_names", type=str, default="",
+                    help="If set, only evaluate questions whose category appears in this training data.")
     ap.add_argument("--out_dir", type=str, required=True)
     ap.add_argument("--full_state_path", type=str, default="")
     ap.add_argument("--skip_ckpt", action="store_true", default=False,
@@ -302,6 +304,16 @@ def main():
     if qf:
         items = [it for it in items if (it.get("meta", {}) or {}).get("question_category") == qf]
         print(f"Applied question_category_filter={qf} => remaining={len(items)}")
+
+    if args.hf_train_names.strip():
+        from dataset import DATASET_CATEGORIES
+        train_names = [n.strip() for n in args.hf_train_names.split(",") if n.strip()]
+        train_cats = set().union(*[DATASET_CATEGORIES.get(n, set()) for n in train_names])
+        before = len(items)
+        items = [it for it in items
+                 if (it.get("meta", {}) or {}).get("question_category") in train_cats]
+        print(f"Cross-domain category filter: {before} -> {len(items)} items "
+              f"(kept: {sorted(train_cats)})")
 
     random.shuffle(items)
     if args.max_samples and args.max_samples > 0:
