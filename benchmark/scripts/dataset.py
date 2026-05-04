@@ -10,31 +10,6 @@ from torch.utils.data import Dataset
 from datasets import load_dataset, get_dataset_config_names
 
 
-_CATEGORY_NORMAL: Dict[str, Optional[Set[str]]] = {
-    "activity_label":          None,             
-    "af_label":                {"non_af"},
-    "arrhythmia_category":     {"sinus_rhythm"},
-    "blood_pressure_category": {"normal"},
-    "heart_rate_category":     {"normal"},
-    "hrv_pnn50_category":      {"normal"},
-    "hrv_rmssd_category":      {"normal"},
-    "hrv_sdnn_category":       {"normal"},
-    "rr_category":             {"normal"},
-    "sdb_label":               {"normal_ahi<5"},
-    "spo2_category":           {"normal"},
-    "sqi_category":            {"good_quality"},
-    "stress_label":            {"baseline"},
-}
-
-
-def _is_minority(category: str, answer: str) -> bool:
-    """Return True if this (category, answer) should be augmented."""
-    normal = _CATEGORY_NORMAL.get(category)
-    if normal is None:
-        return False         
-    return answer not in normal
-
-
 def _aug_gaussian_noise(sig: np.ndarray) -> np.ndarray:
     std = np.random.uniform(0.005, 0.02)
     return sig + np.random.normal(0.0, std, size=sig.shape).astype(np.float32)
@@ -78,6 +53,31 @@ _SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "category_schema.json")
 def load_category_schema() -> Dict[str, Dict[str, List[str]]]:
     with open(_SCHEMA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+_CATEGORY_NORMAL: Dict[str, Optional[Set[str]]] = {
+    "activity_label":          None,             
+    "af_label":                {"non_af"},
+    "arrhythmia_category":     {"sinus_rhythm"},
+    "blood_pressure_category": {"normal"},
+    "heart_rate_category":     {"normal"},
+    "hrv_pnn50_category":      {"normal"},
+    "hrv_rmssd_category":      {"normal"},
+    "hrv_sdnn_category":       {"normal"},
+    "rr_category":             {"normal"},
+    "sdb_label":               {"normal_ahi<5"},
+    "spo2_category":           {"normal"},
+    "sqi_category":            {"good_quality"},
+    "stress_label":            {"baseline"},
+}
+
+
+def _is_minority(category: str, answer: str) -> bool:
+    """Return True if this (category, answer) should be augmented."""
+    normal = _CATEGORY_NORMAL.get(category)
+    if normal is None:
+        return False         
+    return answer not in normal
 
 
 CATEGORY_SCHEMA: Dict[str, Dict[str, List[str]]] = load_category_schema()
