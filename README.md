@@ -6,12 +6,12 @@
 
 <div align="center"> 
 <a href="https://github.com/manhph2211/PulseLM/"><img src="https://img.shields.io/badge/Website WebPage-blue?style=for-the-badge"></a>
-<a href="https://arxiv.org/pdf/2603.03331"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a>
+<!-- <a href="https://arxiv.org/pdf/2603.03331"><img src="https://img.shields.io/badge/arxiv-Paper-red?style=for-the-badge"></a> -->
 <a href="https://huggingface.co/datasets/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Dataset-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
 <a href="https://huggingface.co/Manhph2211/PulseLM"><img src="https://img.shields.io/badge/Checkpoint-%F0%9F%A4%97%20Hugging%20Face-White?style=for-the-badge"></a>
 </div>
 
-<div align="center">
+<!-- <div align="center">
   <a href="" target="_blank">Hung&nbsp;Manh&nbsp;Pham*</a> &emsp;
   <a href="" target="_blank">Jinyang&nbsp;Wu*</a> &emsp;
   <a href="" target="_blank">Xiao&nbsp;Ma</a> &emsp;
@@ -21,11 +21,11 @@
   <a href="" target="_blank">Bin&nbsp;Zhu†</a> &emsp;
   <a href="" target="_blank">Zhou&nbsp;Pan†</a> &emsp;
   <a href="" target="_blank">Dong&nbsp;Ma†</a>
-</div>
+</div> -->
 <br>
-<div align="center">
+<!-- <div align="center">
   <em>* Equal contribution &nbsp;&nbsp; † Corresponding authors</em>
-</div>
+</div> -->
 
 
 <img alt="image" src="https://github.com/user-attachments/assets/46a8cd34-1b1f-44f5-babf-6d375c09015d" />
