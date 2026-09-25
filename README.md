@@ -339,3 +339,16 @@ python benchmark/scripts/evaluate.py \
     --predictions assets/outputs/eval_results/eval_predictions.jsonl \
     --out_dir assets/outputs/eval_results/metrics
 ```
+
+## Citation
+
+If you find this work useful, please consider citing our paper:
+
+```bibtex
+@article{pham2026pulselm,
+  title={PulseLM: A Foundation Dataset and Benchmark for PPG-Text Learning},
+  author={Pham, Hung Manh and Wu, Jinyang and Ma, Xiao and Zhang, Yiming and Xu, Yixin and Saeed, Aaqib and Zhu, Bin and Pan, Zhou and Ma, Dong},
+  journal={arXiv preprint arXiv:2603.03331},
+  year={2026}
+}
+```
