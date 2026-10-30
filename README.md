@@ -340,6 +340,10 @@ python benchmark/scripts/evaluate.py \
     --out_dir assets/outputs/eval_results/metrics
 ```
 
+## Acknowledgements
+
+We thank the authors of the public PPG datasets used in PulseLM, the PPG encoders (PaPaGei, Pulse-PPG, AnyPPG, SIGMA-PPG, NormWear, Chronos-Bolt), and the LLM backbones (Qwen, LLaMA, Mistral, MedGemma) for making their data, code, and models available.
+
 ## Citation
 
 If you find this work useful, please consider citing our paper:
