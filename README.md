@@ -46,7 +46,7 @@ This dataset enables research and applications in:
 - Zero-shot physiological signal classification
 - Explainable AI for health monitoring
 
-We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible. PulseLM is a research project that builds upon these valuable resources, and we greatly appreciate the efforts of the original dataset creators in collecting and openly publishing the data with the community. Users of this repo are also required to comply with their usage policy.
+We sincerely thank the authors and maintainers of the following publicly available datasets that made this work possible. PulseLM is a research project that builds upon these valuable resources, and we greatly appreciate the efforts of the original dataset creators in collecting and openly publishing the data with the community. We also thank the authors of the PPG encoders (PaPaGei, Pulse-PPG, AnyPPG, SIGMA-PPG, NormWear, Chronos-Bolt) and the LLM backbones (Qwen, LLaMA, Mistral, MedGemma) for releasing their code and models. Users of this repo are also required to comply with their usage policy.
 
 <img alt="image" src="https://github.com/user-attachments/assets/7d2bef6b-b839-465c-84c6-8025c9a4816b" />
 
@@ -339,10 +339,6 @@ python benchmark/scripts/evaluate.py \
     --predictions assets/outputs/eval_results/eval_predictions.jsonl \
     --out_dir assets/outputs/eval_results/metrics
 ```
-
-## Acknowledgements
-
-We thank the authors of the public PPG datasets used in PulseLM, the PPG encoders (PaPaGei, Pulse-PPG, AnyPPG, SIGMA-PPG, NormWear, Chronos-Bolt), and the LLM backbones (Qwen, LLaMA, Mistral, MedGemma) for making their data, code, and models available.
 
 ## Citation
 
