@@ -340,23 +340,6 @@ python benchmark/scripts/evaluate.py \
     --out_dir assets/outputs/eval_results/metrics
 ```
 
-#### PPG Encoders
-
-Set `--ppg_encoder_type` and `--ppg_encoder_ckpt`. Signals are resampled from 125 Hz to the rate of each encoder, and `--ppg_feat_dim` defaults to the encoder output size.
-
-| `--ppg_encoder_type` | Model | Hz | Dim | `--ppg_encoder_ckpt` |
-|---|---|---|---|---|
-| `papagei` | PaPaGei-S | 125 | 512 | `benchmark/checkpoints/papagei/papagei_s.pt` |
-| `pulseppg` | Pulse-PPG | 50 | 512 | `benchmark/checkpoints/pulseppg/checkpoint_best.pkl` |
-| `anyppg` | [AnyPPG](https://github.com/Ngk03/AnyPPG) | 125 | 512 | `benchmark/checkpoints/anyppg/anyppg_ckpt.pth` |
-| `sigmappg` | [SIGMA-PPG](https://huggingface.co/zonhengu/sigmappg) | 50 | 360 | `benchmark/checkpoints/sigmappg/sigma.pth` |
-| `normwear` | [NormWear](https://huggingface.co/mosaic-laboratory/normwear) | 65 | 768 | `mosaic-laboratory/normwear` |
-| `chronosbolt` | [Chronos-Bolt](https://huggingface.co/amazon/chronos-bolt-small) | 125 | 512 | `amazon/chronos-bolt-small` |
-
-#### LLM Backbones
-
-Set `--llm_name` to a Hugging Face model id, e.g. `Qwen/Qwen2.5-7B-Instruct`, `Qwen/Qwen3-4B`, `meta-llama/Llama-3.2-3B-Instruct`, `meta-llama/Llama-3.1-8B-Instruct`, `mistralai/Mistral-7B-Instruct-v0.3`, or `google/medgemma-4b-it`.
-
 ## Citation
 
 If you find this work useful, please consider citing our paper:
@@ -364,7 +347,7 @@ If you find this work useful, please consider citing our paper:
 ```bibtex
 @article{pham2026pulselm,
   title={PulseLM: A Foundation Dataset and Benchmark for PPG-Text Learning},
-  author={Pham, Hung Manh and Wu, Jinyang and Ma, Xiao and Zhang, Yiming and Xu, Yixin and Saeed, Aaqib and Zhu, Bin and Pan, Zhou and Ma, Dong},
+  author={Pham, Hung Manh and Wu, Jinyang and Ma, Xiao and Zhang, Yiming and Xu, Yixin and Saeed, Aaqib and Zhu, Bin and Zhou, Pan and Ma, Dong},
   journal={arXiv preprint arXiv:2603.03331},
   year={2026}
 }
