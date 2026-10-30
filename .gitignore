@@ -20,6 +20,8 @@ utils/*.py
 utils/*.ipynb
 benchmark/checkpoints/papagei/
 benchmark/checkpoints/pulse*/
+benchmark/checkpoints/anyppg/
+benchmark/checkpoints/sigmappg/
 benchmark/scripts/*table*
 benchmark/scripts/*aggregate_ci*
 assets/others/

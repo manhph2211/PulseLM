@@ -36,8 +36,8 @@ def ensure_dir(p: str) -> None:
 
 def build_prompt(messages: List[Dict[str, Any]], tokenizer) -> str:
     prompt_msgs = [m for m in messages if m.get("role") in ("system", "user")]
-    tmpl = getattr(tokenizer, "chat_template", "") or ""
-    if "system" not in tmpl and prompt_msgs and prompt_msgs[0]["role"] == "system":
+    from dataset import template_drops_system
+    if template_drops_system(tokenizer) and prompt_msgs and prompt_msgs[0]["role"] == "system":
         sys_content = prompt_msgs[0]["content"]
         rest = prompt_msgs[1:]
         if rest and rest[0]["role"] == "user":
@@ -138,6 +138,7 @@ def load_hf_items(dataset_names, split, seed, ppg_encoder_type="papagei", catego
     remapped = 0
     for name in dataset_names:
         ds = load_dataset("Manhph2211/PulseLM", name, split=split)
+        ds = ds.select_columns(["signal", "qa"]).with_format("numpy", columns=["signal"], output_all_columns=True)
         for row_idx, row in enumerate(ds):
             sig = _resample_ppg(np.array(row["signal"], dtype=np.float32), ppg_encoder_type)
             qa = _parse_qa(row["qa"])
@@ -218,7 +219,7 @@ def main():
     ap.add_argument("--full_state_path", type=str, default="")
     ap.add_argument("--skip_ckpt", action="store_true", default=False,
                     help="Skip loading checkpoint — runs with random weights to verify the pipeline.")
-    ap.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["pulseppg", "papagei"])
+    ap.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["papagei", "pulseppg", "anyppg", "sigmappg", "normwear", "chronosbolt"])
     ap.add_argument("--ppg_encoder_ckpt", type=str, required=True)
     ap.add_argument("--llm_name", type=str, required=True)
     ap.add_argument("--cache_dir", type=str, default=None)
@@ -239,7 +240,7 @@ def main():
                     help="Blind baseline: replace PPG embeddings with zeros (LLM text-only).")
     ap.add_argument("--print_every", type=int, default=200)
     ap.add_argument("--max_print_failures", type=int, default=30)
-    ap.add_argument("--ppg_feat_dim", type=int, default=512)
+    ap.add_argument("--ppg_feat_dim", type=int, default=None)
     ap.add_argument("--lora_r", type=int, default=64)
     ap.add_argument("--lora_alpha", type=int, default=128)
     ap.add_argument("--lora_dropout", type=float, default=0.1)
@@ -247,8 +248,7 @@ def main():
 
     from transformers import AutoTokenizer
     from models.pulselm import MultimodalPPGLLM
-    from models.ppg_encoder.pulseppg import load_pulseppg_from_checkpoint
-    from models.ppg_encoder.papagei import load_papagei_from_checkpoint
+    from models.ppg_encoder import load_ppg_encoder, encoder_feat_dim
 
     ensure_dir(args.out_dir)
     result_path = os.path.join(args.out_dir, "eval_metrics.json")
@@ -258,8 +258,6 @@ def main():
 
     if not args.skip_ckpt and not os.path.exists(args.full_state_path):
         raise FileNotFoundError(f"Missing full_state: {args.full_state_path}")
-    if not os.path.exists(args.ppg_encoder_ckpt):
-        raise FileNotFoundError(f"Missing PPG encoder ckpt: {args.ppg_encoder_ckpt}")
 
     import numpy as np
     random.seed(args.seed)
@@ -338,10 +336,9 @@ def main():
             _ref = _AT.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", token=hf_token, use_fast=True)
             tokenizer.chat_template = _ref.chat_template
 
-    if args.ppg_encoder_type == "pulseppg":
-        ppg_encoder = load_pulseppg_from_checkpoint(args.ppg_encoder_ckpt, device="cpu")
-    else:
-        ppg_encoder = load_papagei_from_checkpoint(args.ppg_encoder_ckpt, device="cpu")
+    ppg_encoder = load_ppg_encoder(args.ppg_encoder_type, args.ppg_encoder_ckpt, device="cpu")
+    if args.ppg_feat_dim is None:
+        args.ppg_feat_dim = encoder_feat_dim(args.ppg_encoder_type, ppg_encoder)
 
     model = MultimodalPPGLLM(
         llm_name=args.llm_name,
@@ -366,6 +363,9 @@ def main():
         del state
         print(f"Loaded full_state. missing={len(missing)}, unexpected={len(unexpected)}")
     model = model.to(torch.bfloat16).to(device).eval()
+    base = model.llm.get_base_model() if hasattr(model.llm, "get_base_model") else model.llm
+    if getattr(base.generation_config, "cache_implementation", None):
+        base.generation_config.cache_implementation = None
 
     # Left-padding is required for batched generation so all sequences are right-aligned
     tokenizer.padding_side = "left"
@@ -459,7 +459,8 @@ def main():
 
         # --- Batch tokenize (left-padded) ---
         prompts = [build_prompt(it.get("messages", []) or [], tokenizer) for it, *_ in ready]
-        enc = tokenizer(prompts, return_tensors="pt", padding=True)
+        from dataset import template_has_bos
+        enc = tokenizer(prompts, return_tensors="pt", padding=True, add_special_tokens=not template_has_bos(tokenizer))
         input_ids = enc["input_ids"].to(device)
         attention_mask = enc["attention_mask"].to(device)
 

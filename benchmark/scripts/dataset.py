@@ -34,7 +34,7 @@ def augment_ppg(sig: np.ndarray) -> np.ndarray:
         sig = op(sig)
     return sig
 
-_ENCODER_HZ = {"papagei": 125, "pulseppg": 50}
+from models.ppg_encoder import ENCODER_HZ as _ENCODER_HZ
 _DATASET_HZ = 125  
 
 
@@ -156,6 +156,18 @@ def _parse_qa(qa: Any) -> Dict[str, Any]:
     return {}
 
 
+def template_has_bos(tokenizer) -> bool:
+    return "gemma" in type(tokenizer).__name__.lower() or "mistral" in (tokenizer.name_or_path or "").lower()
+
+
+def template_drops_system(tokenizer) -> bool:
+    msgs = [{"role": "system", "content": "SYSPROBE"}, {"role": "user", "content": "q"}, {"role": "assistant", "content": "a"}]
+    try:
+        return "SYSPROBE" not in tokenizer.apply_chat_template(msgs, tokenize=False)
+    except Exception:
+        return True
+
+
 class HFPulseLMDataset(Dataset):
     def __init__(
         self,
@@ -171,6 +183,7 @@ class HFPulseLMDataset(Dataset):
     ):
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self._drops_system = None
         self.ignore_index = ignore_index
         self.use_chat_template = use_chat_template
         self.ppg_encoder_type = ppg_encoder_type
@@ -185,6 +198,7 @@ class HFPulseLMDataset(Dataset):
 
         for name in dataset_names:
             ds = load_dataset("Manhph2211/PulseLM", name, split=split)
+            ds = ds.select_columns(["signal", "qa"]).with_format("numpy", columns=["signal"], output_all_columns=True)
             for row in ds:
                 sig = _resample_ppg(np.array(row["signal"], dtype=np.float32), self.ppg_encoder_type)
                 qa = _parse_qa(row["qa"])
@@ -251,8 +265,9 @@ class HFPulseLMDataset(Dataset):
         use_chat = self.use_chat_template and hasattr(self.tokenizer, "apply_chat_template")
         if use_chat:
             # Mistral-based models don't support system role — merge into first user message
-            tmpl = getattr(self.tokenizer, "chat_template", "") or ""
-            if "system" not in tmpl and prompt_msgs and prompt_msgs[0]["role"] == "system":
+            if self._drops_system is None:
+                self._drops_system = template_drops_system(self.tokenizer)
+            if self._drops_system and prompt_msgs and prompt_msgs[0]["role"] == "system":
                 sys_content = prompt_msgs[0]["content"]
                 rest = prompt_msgs[1:]
                 if rest and rest[0]["role"] == "user":
@@ -271,8 +286,11 @@ class HFPulseLMDataset(Dataset):
                 prompt_only = prompt_only + "\n\n"
             full_text = prompt_only + assistant_text
 
-        enc = self.tokenizer(full_text, truncation=True, max_length=self.max_length, return_tensors=None)
-        prompt_enc = self.tokenizer(prompt_only, truncation=True, max_length=self.max_length, return_tensors=None)
+        kw = dict(truncation=True, max_length=self.max_length, return_tensors=None)
+        if use_chat and template_has_bos(self.tokenizer):
+            kw["add_special_tokens"] = False
+        enc = self.tokenizer(full_text, **kw)
+        prompt_enc = self.tokenizer(prompt_only, **kw)
 
         input_ids = enc["input_ids"]
         attention_mask = enc.get("attention_mask") or [1] * len(input_ids)

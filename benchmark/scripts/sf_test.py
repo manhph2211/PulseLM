@@ -162,7 +162,7 @@ def main():
     ap.add_argument("--question_category_filter", type=str, default="")
     ap.add_argument("--out_dir", type=str, required=True)
     ap.add_argument("--full_state_path", type=str, required=True)
-    ap.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["pulseppg", "papagei"])
+    ap.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["papagei", "pulseppg", "anyppg", "sigmappg", "normwear", "chronosbolt"])
     ap.add_argument("--ppg_encoder_ckpt", type=str, required=True)
     ap.add_argument("--llm_name", type=str, required=True)
     ap.add_argument("--cache_dir", type=str, default=None)
@@ -175,7 +175,7 @@ def main():
     ap.add_argument("--ppg_unsqueeze_channel", action="store_true")
     ap.add_argument("--print_every", type=int, default=200)
     ap.add_argument("--max_print_failures", type=int, default=30)
-    ap.add_argument("--ppg_feat_dim", type=int, default=512)
+    ap.add_argument("--ppg_feat_dim", type=int, default=None)
     ap.add_argument("--lora_r", type=int, default=64)
     ap.add_argument("--lora_alpha", type=int, default=128)
     ap.add_argument("--lora_dropout", type=float, default=0.1)
@@ -183,8 +183,7 @@ def main():
 
     from transformers import AutoTokenizer
     from models.pulselm import MultimodalPPGLLM
-    from models.ppg_encoder.pulseppg import load_pulseppg_from_checkpoint
-    from models.ppg_encoder.papagei import load_papagei_from_checkpoint
+    from models.ppg_encoder import load_ppg_encoder, encoder_feat_dim
 
     ensure_dir(args.out_dir)
     result_path = os.path.join(args.out_dir, "eval_metrics.json")
@@ -194,8 +193,6 @@ def main():
 
     if not os.path.exists(args.full_state_path):
         raise FileNotFoundError(f"Missing full_state: {args.full_state_path}")
-    if not os.path.exists(args.ppg_encoder_ckpt):
-        raise FileNotFoundError(f"Missing PPG encoder ckpt: {args.ppg_encoder_ckpt}")
 
     import numpy as np
     random.seed(args.seed)
@@ -240,10 +237,9 @@ def main():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    if args.ppg_encoder_type == "pulseppg":
-        ppg_encoder = load_pulseppg_from_checkpoint(args.ppg_encoder_ckpt, device="cpu")
-    else:
-        ppg_encoder = load_papagei_from_checkpoint(args.ppg_encoder_ckpt, device="cpu")
+    ppg_encoder = load_ppg_encoder(args.ppg_encoder_type, args.ppg_encoder_ckpt, device="cpu")
+    if args.ppg_feat_dim is None:
+        args.ppg_feat_dim = encoder_feat_dim(args.ppg_encoder_type, ppg_encoder)
 
     model = MultimodalPPGLLM(
         llm_name=args.llm_name,

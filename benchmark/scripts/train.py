@@ -203,12 +203,14 @@ def main():
     parser.add_argument("--lora_r", type=int, default=64)
     parser.add_argument("--lora_alpha", type=int, default=128)
     parser.add_argument("--lora_dropout", type=float, default=0.1)
-    parser.add_argument("--ppg_feat_dim", type=int, default=512)
+    parser.add_argument("--ppg_feat_dim", type=int, default=None)
     parser.add_argument("--freeze_ppg_encoder", action="store_true", default=True)
-    parser.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["pulseppg", "papagei"])
+    parser.add_argument("--no_freeze_ppg_encoder", dest="freeze_ppg_encoder", action="store_false")
+    parser.add_argument("--ppg_encoder_type", type=str, default="papagei", choices=["papagei", "pulseppg", "anyppg", "sigmappg", "normwear", "chronosbolt"])
     parser.add_argument("--ppg_encoder_ckpt", type=str, required=True)
     parser.add_argument("--ppg_unsqueeze_channel", action="store_true", default=False)
     parser.add_argument("--seed", type=int, default=256)
+    parser.add_argument("--eval_steps", type=int, default=2000)
 
     args = parser.parse_args()
 
@@ -217,8 +219,7 @@ def main():
     from utils.utils import set_seed
 
     set_seed(args.seed)
-    from models.ppg_encoder.pulseppg import load_pulseppg_from_checkpoint
-    from models.ppg_encoder.papagei import load_papagei_from_checkpoint
+    from models.ppg_encoder import load_ppg_encoder, encoder_feat_dim
     from dataset import HFPulseLMDataset, PPGDataCollator as HFPPGDataCollator
 
     os.makedirs(args.out_dir, exist_ok=True)
@@ -244,6 +245,7 @@ def main():
 
     hf_token = os.environ.get("HF_TOKEN", None)
     tokenizer = AutoTokenizer.from_pretrained(args.llm_name, token=hf_token, use_fast=True, trust_remote_code=True)
+    tokenizer.padding_side = "right"
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     if not getattr(tokenizer, "chat_template", None):
@@ -264,10 +266,9 @@ def main():
             _ref = _AT.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", token=hf_token, use_fast=True)
             tokenizer.chat_template = _ref.chat_template
 
-    if args.ppg_encoder_type == "pulseppg":
-        ppg_encoder = load_pulseppg_from_checkpoint(checkpoint_path=args.ppg_encoder_ckpt, device="cpu")
-    else:
-        ppg_encoder = load_papagei_from_checkpoint(checkpoint_path=args.ppg_encoder_ckpt, device="cpu")
+    ppg_encoder = load_ppg_encoder(args.ppg_encoder_type, args.ppg_encoder_ckpt, device="cpu")
+    if args.ppg_feat_dim is None:
+        args.ppg_feat_dim = encoder_feat_dim(args.ppg_encoder_type, ppg_encoder)
     model = MultimodalPPGLLM(
         llm_name=args.llm_name,
         ppg_encoder=ppg_encoder,
@@ -331,10 +332,10 @@ def main():
         max_grad_norm=1.0,
         report_to="wandb",
         remove_unused_columns=False,
-        eval_strategy="steps",
-        eval_steps=2000,
-        save_strategy="steps",
-        save_steps=2000,
+        eval_strategy="steps" if args.eval_steps > 0 else "epoch",
+        eval_steps=args.eval_steps if args.eval_steps > 0 else None,
+        save_strategy="steps" if args.eval_steps > 0 else "epoch",
+        save_steps=args.eval_steps if args.eval_steps > 0 else None,
         save_total_limit=1,
         logging_steps=50,
         load_best_model_at_end=True,
